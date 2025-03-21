@@ -1,16 +1,17 @@
 import { Animated, FlatList, View, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState ,useEffect} from 'react';
 import Slides from '../data/index';
 import SlideItem, { colors } from './SliderItem';
 import Pagination from './Pagination';
 import Icon from 'react-native-vector-icons/AntDesign';
-
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('screen');
 const Slider = () => {
+    const router=useRouter();
     const [index, setIndex] = useState(0);
     const flatListRef = useRef(null);
-    const translateX = useRef(new Animated.Value(0)).current;
+    const translateX = useRef(new Animated.Value(0)).current; // Check session
 
     const handleNext = () => {
         if (index < Slides.length - 1) {
@@ -33,7 +34,12 @@ const Slider = () => {
             ]).start();
 
         }
+        if (index===Slides.length-1) {
+            router.push("/(auth)")
+        }
     }
+        
+    
     return (
         <>
             <FlatList
@@ -58,7 +64,7 @@ const Slider = () => {
             <Pagination data={Slides} index={index} />
             <View style={styles.buttonsContainer} >
 
-                <TouchableOpacity onPress={handleNext} style={[styles.button, { backgroundColor: colors(index + 1).btnBg }]} >
+                <TouchableOpacity onPress={()=>{handleNext()}} style={[styles.button, { backgroundColor: colors(index + 1).btnBg }]} >
 
                     <Text style={[styles.buttonText, { color: colors(index + 1).btnColor }]}>{index === Slides.length - 1 ? 'Start Learning' : 'Continue'}
                     </Text>
