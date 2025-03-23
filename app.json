@@ -4,7 +4,7 @@
     "slug": "padhai-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "padhai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,8 +13,9 @@
       "supportsTablet": true
     },
     "android": {
+      "enableHermes": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#000000"
       },
       "package": "com.ayushkumar077.padhaiapp",
@@ -44,7 +45,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
