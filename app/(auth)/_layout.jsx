@@ -34,7 +34,7 @@ export default function Layout({ children }) {
     return (
         <>
             {children}
-            <Stack />
+            <Stack screenOptions={{headerShown:false}}/>
         </>
     );
 }

@@ -1,10 +1,4 @@
-import {
-    StyleSheet,
-    Text,
-    View,
-    Dimensions,
-    ImageBackground,
-} from 'react-native';
+import {StyleSheet,Text,View,Dimensions,ImageBackground} from 'react-native';
 import React from 'react';
 
 const { width, height } = Dimensions.get('screen');
@@ -33,8 +27,8 @@ const SlideItem = ({ item }) => {
                 }
             >
                 <View style={styles.text}>
-                <Text style={[styles.title,{color:colors(item.id).color}]}>{item.title}</Text>
-                <Text style={[styles.description,{color:colors(item.id).descColor}]}>{item.description}</Text>
+                <Text style={[styles.title,{color:colors(item.id).color}]} className='font-sf font-bold'>{item.title}</Text>
+                <Text style={[styles.description,{color:colors(item.id).descColor}]} className='font-light'>{item.description}</Text>
                 </View>
             </ImageBackground>
 
@@ -55,7 +49,6 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 36,
-        fontWeight: 'bold',
         top:0,
         width: width/1.2,
         marginHorizontal:'auto',

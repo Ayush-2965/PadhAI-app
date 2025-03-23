@@ -3,7 +3,7 @@ import React, { useRef, useState ,useEffect} from 'react';
 import Slides from '../data/index';
 import SlideItem, { colors } from './SliderItem';
 import Pagination from './Pagination';
-import Icon from 'react-native-vector-icons/AntDesign';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('screen');
@@ -69,7 +69,8 @@ const Slider = () => {
                     <Text style={[styles.buttonText, { color: colors(index + 1).btnColor }]}>{index === Slides.length - 1 ? 'Start Learning' : 'Continue'}
                     </Text>
                     <Animated.View style={{ transform: [{ translateX }] }}>
-                        <Icon name="arrowright" size={22} height={18} color={colors(index + 1).btnColor} />
+                    <AntDesign name="arrowright" size={22} height={18} color={colors(index + 1).btnColor} />
+                    
                     </Animated.View>
 
                 </TouchableOpacity>

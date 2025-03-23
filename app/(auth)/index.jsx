@@ -1,93 +1,121 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, Button, StyleSheet, Alert, Image, Pressable, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { signUp, loginWithGoogle } from "../../utils/appwrite";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 const SignupScreen = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // ✅ Handle Email & Password Signup
+
   const handleSignup = async () => {
     if (password !== confirmPassword) {
       return Alert.alert("Passwords do not match");
     }
 
     try {
-      await signUp(email, password);
-      Alert.alert("Success", "Account created! Please log in.");
-      router.replace("/(auth)/login"); // Redirect to login page
+      const response = await signUp(email, password);
+    
+      if (response.success) {
+        Alert.alert("Success", response.message);
+        router.replace("/(auth)/login"); // Redirect to login page
+      } else {
+        Alert.alert("Signup Failed", response.message);
+        if (response.message.includes("User already exists")) {
+          router.replace("/(auth)/login"); // Redirect if user exists
+        }
+      }
     } catch (error) {
       Alert.alert("Signup Failed", error.message || "Something went wrong!");
     }
+    
   };
 
-  // ✅ Handle Google Signup/Login
   const handleGoogleSignup = async () => {
     try {
-      await loginWithGoogle();
-      router.replace("/(tabs)"); // Redirect after signup/login
+      const res=await loginWithGoogle("google");
+      if (res.success) {
+
+        router.replace("/(tabs)"); // Redirect after signup/login
+      }
     } catch (error) {
       Alert.alert("Google Signup Failed", error.message || "Try again!");
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Image source={require('../../assets/images/logo.png')} />
+        <Text className="text-[24px] font-semibold mb-5 flex justify-start w-full">Create Your Account</Text>
 
-      {/* ✅ Email Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
+        {/*  Email Input */}
+        <TextInput
+          style={styles.input}
+          className="placeholder:color-[#16153355] "
+          placeholder="Email"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-      {/* ✅ Password Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        {/*  Password Input */}
+        <TextInput
+          style={styles.input}
+          className="placeholder:color-[#16153355]"
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      {/* ✅ Confirm Password Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-      />
+        {/*  Confirm Password Input */}
+        <TextInput
+          style={styles.input}
+          className="placeholder:color-[#16153355]"
+          placeholder="Confirm Password"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
 
-      {/* ✅ Signup Button */}
-      <Button title="Sign Up" onPress={handleSignup} />
+        {/* Signup Button */}
+        <TouchableOpacity className="bg-[#5C1A54] py-3 px-6 rounded-lg w-full mt-5" onPress={handleSignup}>
+          <Text className="text-white text-center text-[18px]">Sign Up</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.orText}>or</Text>
+        <View className="flex-row gap-3 items-center h-max my-5">
+          <View className="h-[1px] bg-black w-7"></View>
+          <Text style={styles.orText} className="font-light">or signup with</Text>
+          <View className="h-[1px] bg-black w-7"></View>
+        </View>
 
-      {/* ✅ Google Signup/Login Button */}
-      <Button title="Continue with Google" onPress={handleGoogleSignup} color="red" />
-
-      <Text style={styles.loginText} onPress={() => router.replace("/(auth)/login")}>
-        Already have an account? Log in
-      </Text>
-    </View>
+        <TouchableOpacity className="bg-white py-3 px-6 rounded-lg w-full mt-1 flex-row gap-4 justify-center border-[1px] border-[#ccc]" onPress={handleGoogleSignup}>
+          <Image source={require("../../assets/images/google.png")} />
+          <Text className="text-center text-[#3e3e3ee9]">Login with Google</Text>
+        </TouchableOpacity>
+        <Text style={styles.loginText} onPress={() => router.replace("/(auth)/login")}>
+          Already have an account? <Text className="text-[#5C1A54]">Login</Text>
+        </Text>
+      </View>
+    </SafeAreaView>
   );
 };
 
 export default SignupScreen;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
+    paddingTop: 60,
+  },
   container: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   title: {
     fontSize: 24,
@@ -101,14 +129,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     borderColor: "#ccc",
+    fontWeight: 300,
   },
   orText: {
-    marginVertical: 10,
-    fontSize: 16,
+    fontSize: 13,
+    verticalAlign: "center",
+    height:"max"
   },
   loginText: {
-    marginTop: 15,
-    color: "blue",
+    marginTop: 35,
     textDecorationLine: "underline",
   },
 });
