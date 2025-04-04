@@ -8,12 +8,14 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import DateTimeSelector from "../../../components/DateTimeSelector";
 import CustomTimePicker from "../../../components/VerticalTimePicker";
 import { router } from "expo-router";
 import Modal from "react-native-modal";
 import { MaterialIcons } from '@expo/vector-icons';
+import { getCurrentUser, savePlanner } from "../../../utils/appwrite";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +31,7 @@ const Planner = ({ navigation }) => {
       to: { hour: 11, minute: 0 },
     },
   ]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const getItemLayout = useCallback((data, index) => ({
     length: width,
@@ -537,18 +540,46 @@ const Planner = ({ navigation }) => {
 
         <TouchableOpacity
           className="bg-green-500 py-3 rounded-lg mt-6 items-center"
-          onPress={() =>
-            router.dismissTo({
-              pathname: "/",
-              params: {
-                selectedDate: selectedDate.toISOString(),
-                timeSlots: JSON.stringify(timeSlots),
-                subjects,
-              },
-            })
-          }
+          disabled={isLoading}
+          onPress={async () => {
+            try {
+              setIsLoading(true);
+              const response = await fetch('https://n8n-jeni.onrender.com/webhook/planner', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  selectedDate: selectedDate.toISOString(),
+                  timeSlots: timeSlots,
+                  subjects: subjects,
+                }),
+              });
+
+              const data = await response.json();
+              console.log("API Response:", JSON.stringify(data, null, 2));
+              
+              // Save to Appwrite
+              const user = await getCurrentUser();
+              if (user) {
+                await savePlanner(user.$id, data);
+              }
+              
+              // Navigate back to index
+              router.replace("/");
+            } catch (error) {
+              console.error('Error:', error);
+              alert('Failed to generate planner. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
+          }}
         >
-          <Text className="text-white font-bold">Confirm</Text>
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-white font-bold">Confirm</Text>
+          )}
         </TouchableOpacity>
       </View>
     );

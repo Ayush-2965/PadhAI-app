@@ -1,4 +1,4 @@
-import { Client, Account, ID,Databases,Permission, Role, OAuthProvider  } from "react-native-appwrite";
+import { Client, Account, ID,Databases,Permission, Role, OAuthProvider, Query } from "react-native-appwrite";
 import * as SecureStore from "expo-secure-store";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
@@ -13,16 +13,18 @@ const databases = new Databases(client);
 const SESSION_KEY = "user_session"; 
 const DATABASE_ID="67dfb11f000d20bf0878";
 const COLLECTION_ID="67dfb12e0002895ef8d3"
+const PLANNER_COLLECTION_ID = "67efc1b000388393c477";
+const STUDY_SESSION_COLLECTION_ID = "67f009270007cb4e95d1"; // Replace with your actual collection ID
 
 //  Get stored session
 export const getSession = async () => {
   try {
     const storedSession = await SecureStore.getItemAsync(SESSION_KEY);
     if (storedSession) {
-      return JSON.parse(storedSession); // ✅ Return stored session
+      return JSON.parse(storedSession);
     }
-    const session = await account.get(); // 🔄 Fetch fresh session
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session)); // ✅ Save persistently
+    const session = await account.get();
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
     return session;
   } catch (error) {
     return null;
@@ -33,7 +35,7 @@ export const getSession = async () => {
 export const login = async (email, password) => {
   try {
     const session = await account.createEmailPasswordSession(email, password);
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session)); // 🔐 Save session
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
     return session;
   } catch (error) {
     console.error("Login Error:", error);
@@ -76,7 +78,7 @@ export const loginWithGoogle = async (provider) => {
 export const logout = async () => {
   try {
     await account.deleteSession("current");
-    await SecureStore.deleteItemAsync(SESSION_KEY); // ❌ Remove session
+    await SecureStore.deleteItemAsync(SESSION_KEY);
   } catch (error) {
     console.error("Logout Error:", error);
     throw error;
@@ -116,4 +118,128 @@ export const getCurrentUser = async () => {
         return null; // User not logged in
     }
 };
+
+// Add this function to handle planner operations
+export const savePlanner = async (userId, plannerData) => {
+  try {
+    // Check if user already has a planner
+    const existingPlanner = await getUserPlanner(userId);
+    
+    if (existingPlanner) {
+      // Get current planner count
+      const plannerCount = existingPlanner.plannerCount || 1;
+      
+      // Check if we're at the limit
+      if (plannerCount >= 2) {
+        throw new Error("Maximum planner limit reached");
+      }
+      
+      // Update existing planner
+      const response = await databases.updateDocument(
+        DATABASE_ID,
+        PLANNER_COLLECTION_ID,
+        existingPlanner.$id,
+        {
+          plannerData: JSON.stringify(plannerData),
+          plannerCount: plannerCount + 1,
+          updatedAt: new Date().toISOString(),
+        }
+      );
+      return response;
+    } else {
+      // Create new planner with more permissive permissions
+      const response = await databases.createDocument(
+        DATABASE_ID,
+        PLANNER_COLLECTION_ID,
+        ID.unique(),
+        {
+          userId: userId,
+          plannerData: JSON.stringify(plannerData),
+          plannerCount: 1,
+          createdAt: new Date().toISOString(),
+        },
+        [
+          Permission.read(Role.users()),
+          Permission.update(Role.users()),
+          Permission.delete(Role.users())
+        ]
+      );
+      return response;
+    }
+  } catch (error) {
+    console.error("Error saving planner:", error);
+    throw error;
+  }
+};
+
+export const getUserPlanner = async (userId) => {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      PLANNER_COLLECTION_ID,
+      [
+        Query.equal("userId", userId),
+        Query.orderDesc("createdAt"),
+        Query.limit(1),
+      ]
+    );
+    return response.documents[0] || null;
+  } catch (error) {
+    console.error("Error fetching planner:", error);
+    return null;
+  }
+};
+
+// Add this function to save study sessions
+export const saveStudySession = async (sessionData) => {
+  try {
+    const response = await databases.createDocument(
+      DATABASE_ID,
+      STUDY_SESSION_COLLECTION_ID,
+      ID.unique(),
+      {
+        userId: sessionData.userId,
+        subject: sessionData.subject,
+        topic: sessionData.topic,
+        taskId: sessionData.taskId,
+        timeSlot: sessionData.timeSlot,
+        duration: sessionData.duration,
+        studyTime: sessionData.studyTime,
+        pauseCount: sessionData.pauseCount,
+        completed: sessionData.completed,
+        startTime: sessionData.startTime,
+        endTime: sessionData.endTime,
+        createdAt: new Date().toISOString(),
+      },
+      [
+        Permission.read(Role.user(sessionData.userId)),
+        Permission.update(Role.user(sessionData.userId)),
+        Permission.delete(Role.user(sessionData.userId))
+      ]
+    );
+    return response;
+  } catch (error) {
+    console.error("Error saving study session:", error);
+    throw error;
+  }
+};
+
+// Add this function to get user's study sessions
+export const getUserStudySessions = async (userId) => {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      STUDY_SESSION_COLLECTION_ID,
+      [
+        Query.equal("userId", userId),
+        Query.orderDesc("createdAt"),
+      ]
+    );
+    return response.documents;
+  } catch (error) {
+    console.error("Error fetching study sessions:", error);
+    return [];
+  }
+};
+
 export default client;
