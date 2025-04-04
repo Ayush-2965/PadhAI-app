@@ -8,18 +8,16 @@ import {
   ScrollView,
   TextInput,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import DateTimeSelector from "../../../components/DateTimeSelector";
 import CustomTimePicker from "../../../components/VerticalTimePicker";
 import { router } from "expo-router";
 import Modal from "react-native-modal";
 import { MaterialIcons } from '@expo/vector-icons';
-import { getCurrentUser, savePlanner } from "../../../utils/appwrite";
 
 const { width } = Dimensions.get("window");
 
-const Planner = ({ navigation, translation }) => {
+const Planner = ({ navigation }) => {
   const flatListRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -31,7 +29,6 @@ const Planner = ({ navigation, translation }) => {
       to: { hour: 11, minute: 0 },
     },
   ]);
-  const [isLoading, setIsLoading] = useState(false);
 
   const getItemLayout = useCallback((data, index) => ({
     length: width,
@@ -51,29 +48,17 @@ const Planner = ({ navigation, translation }) => {
         const newEnd = newSlot.to.hour * 60 + newSlot.to.minute;
         
         if (newEnd <= newStart) {
-          translate("Invalid Time").then(title => 
-            translate("End time must be after start time").then(message => 
-              Alert.alert(title, message)
-            )
-          );
+          Alert.alert("Invalid Time", "End time must be after start time");
         } else if ((newEnd - newStart) < 60) {
-          translate("Invalid Duration").then(title => 
-            translate("Minimum slot duration is 1 hour").then(message => 
-              Alert.alert(title, message)
-            )
-          );
+          Alert.alert("Invalid Duration", "Minimum slot duration is 1 hour");
         } else if ((newEnd - newStart) > 180) {
-          translate("Invalid Duration").then(title => 
-            translate("Maximum slot duration is 3 hours").then(message => 
-              Alert.alert(title, message)
-            )
-          );
+          Alert.alert("Invalid Duration", "Maximum slot duration is 3 hours");
         }
         
         return newSlots;
       });
     };
-  }, [translate]);
+  }, []);
 
   const validateTimeSlot = useCallback((newSlot) => {
     const newStart = newSlot.from.hour * 60 + newSlot.from.minute;
@@ -92,11 +77,7 @@ const Planner = ({ navigation, translation }) => {
 
   const addTimeSlot = useCallback(() => {
     if (timeSlots.length >= 5) {
-      translate("Limit Reached").then(title => 
-        translate("Maximum 5 time slots allowed").then(message => 
-          Alert.alert(title, message)
-        )
-      );
+      Alert.alert("Limit Reached", "Maximum 5 time slots allowed");
       return;
     }
 
@@ -106,49 +87,44 @@ const Planner = ({ navigation, translation }) => {
     };
 
     if (!validateTimeSlot(newSlot)) {
-      translate("Invalid Slot").then(title => 
-        translate("This slot overlaps with existing slots").then(message => 
-          Alert.alert(title, message)
-        )
-      );
+      Alert.alert("Invalid Slot", "This slot overlaps with existing slots");
       return;
     }
 
     setTimeSlots(prev => [...prev, newSlot]);
-  }, [timeSlots, validateTimeSlot, translate]);
+  }, [timeSlots, validateTimeSlot]);
 
   const deleteTimeSlot = useCallback((index) => {
     if (timeSlots.length <= 1) {
-      translate("Cannot Delete").then(title => 
-        translate("At least one time slot is required").then(message => 
-          Alert.alert(title, message)
-        )
-      );
+      Alert.alert("Cannot Delete", "At least one time slot is required");
       return;
     }
     setTimeSlots(prev => prev.filter((_, i) => i !== index));
-  }, [timeSlots.length, translate]);
+  }, [timeSlots.length]);
 
   // DateAndTimeSlide Component
   const DateAndTimeSlide = memo(() => {
     return (
       <ScrollView className="flex-1 w-screen" nestedScrollEnabled={true}>
         <View className="p-5 bg-pink-50 flex-1">
-          <TranslatedText 
-            text="Craft Your Ideal Study Plan" 
+          <Text 
             className="text-2xl mb-4 text-[#BD835D] font-bold"
-          />
-          <TranslatedText 
-            text="Choose your deadline:" 
+          >
+            Craft Your Ideal Study Plan
+          </Text>
+          <Text 
             className="text-xl font-bold mb-2 ml-2 text-[#bd835dc1]"
-          />
+          >
+            Choose your deadline:
+          </Text>
 
           <View className="flex-row gap-2 mb-6 ml-2 mt-2">
             <View className="flex-1">
-              <TranslatedText 
-                text="From" 
+              <Text 
                 className="mb-2 text-[#BD835D] font-bold"
-              />
+              >
+                From
+              </Text>
               <DateTimeSelector
                 mode="date"
                 selectedDate={selectedDate}
@@ -156,10 +132,11 @@ const Planner = ({ navigation, translation }) => {
               />
             </View>
             <View className="flex-1">
-              <TranslatedText 
-                text="To" 
+              <Text 
                 className="mb-2 text-[#BD835D] font-bold"
-              />
+              >
+                To
+              </Text>
               <DateTimeSelector
                 mode="date"
                 selectedDate={endDate}
@@ -169,38 +146,42 @@ const Planner = ({ navigation, translation }) => {
           </View>
 
           <View className="flex-row justify-between items-center mb-2">
-            <TranslatedText 
-              text="Time Slots" 
+            <Text 
               className="text-xl font-bold ml-2 text-[#BD835D]"
-            />
+            >
+              Time Slots
+            </Text>
             <TouchableOpacity
               className="bg-pink-400 py-2 px-4 rounded mt-4 mx-2 items-center"
               onPress={addTimeSlot}
             >
-              <TranslatedText 
-                text="+ Add Slot" 
+              <Text 
                 className="text-white font-bold"
-              />
+              >
+                + Add Slot
+              </Text>
             </TouchableOpacity>
           </View>
 
           {timeSlots.map((time, index) => (
             <View key={`timeslot-${index}`} className="mb-4 ml-2">
               <View className="flex-row justify-between items-center">
-                <TranslatedText 
-                  text={`Slot ${index + 1}:`}
+                <Text 
                   className="font-medium"
-                />
+                >
+                  {`Slot ${index + 1}:`}
+                </Text>
                 <TouchableOpacity onPress={() => deleteTimeSlot(index)}>
                   <MaterialIcons name="delete" size={20} color="#ff4444" />
                 </TouchableOpacity>
               </View>
               <View className="flex-row gap-2 mt-2">
                 <View className="flex-1">
-                  <TranslatedText 
-                    text="From:" 
+                  <Text 
                     className="text-gray-600 mb-1"
-                  />
+                  >
+                    From:
+                  </Text>
                   <CustomTimePicker
                     key={`from-${index}`}
                     Hour={time.from.hour}
@@ -209,10 +190,11 @@ const Planner = ({ navigation, translation }) => {
                   />
                 </View>
                 <View className="flex-1">
-                  <TranslatedText 
-                    text="To:" 
+                  <Text 
                     className="text-gray-600 mb-1"
-                  />
+                  >
+                    To:
+                  </Text>
                   <CustomTimePicker
                     key={`to-${index}`}
                     Hour={time.to.hour}
@@ -235,7 +217,6 @@ const Planner = ({ navigation, translation }) => {
     const [newTopics, setNewTopics] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editIndex, setEditIndex] = useState(null);
-    const { translate } = useAppTranslation();
 
     const handleAddSubject = () => {
       setNewSubject('');
@@ -247,127 +228,111 @@ const Planner = ({ navigation, translation }) => {
     const handleEditSubject = (index) => {
       const subject = subjects[index];
       setNewSubject(subject.name);
-      setNewTopics(subject.topics.join(', '));
-      setEditIndex(index);
+      setNewTopics(subject.topics.join(", "));
       setIsEditing(true);
+      setEditIndex(index);
       setIsModalVisible(true);
     };
 
     const handleSave = () => {
       if (!newSubject.trim()) {
-        translate("Required").then(title => 
-          translate("Subject name is required").then(message => 
-            Alert.alert(title, message)
-          )
-        );
+        Alert.alert("Required", "Subject name is required");
+        return;
+      }
+      
+      if (!newTopics.trim()) {
+        Alert.alert("Required", "At least one topic is required");
         return;
       }
 
-      const topicsArray = newTopics.split(',')
+      const topicsArray = newTopics
+        .split(",")
         .map(topic => topic.trim())
-        .filter(topic => topic.length > 0);
+        .filter(topic => topic);
 
-      if (topicsArray.length === 0) {
-        translate("Required").then(title => 
-          translate("At least one topic is required").then(message => 
-            Alert.alert(title, message)
-          )
-        );
-        return;
-      }
-
-      if (isEditing) {
-        const updated = [...subjects];
-        updated[editIndex] = { name: newSubject.trim(), topics: topicsArray };
-        setSubjects(updated);
+      if (isEditing && editIndex !== null) {
+        setSubjects(prev => {
+          const updated = [...prev];
+          updated[editIndex] = {
+            name: newSubject.trim(),
+            topics: topicsArray
+          };
+          return updated;
+        });
       } else {
-        setSubjects(prev => [...prev, { name: newSubject.trim(), topics: topicsArray }]);
+        setSubjects(prev => [
+          ...prev,
+          {
+            name: newSubject.trim(),
+            topics: topicsArray
+          }
+        ]);
       }
 
       setIsModalVisible(false);
     };
 
-    const handleRemoveTopic = (subjectIndex, topicIndex) => {
-      if (subjects[subjectIndex].topics.length <= 1) {
-        translate("Cannot Remove").then(title => 
-          translate("At least one topic is required").then(message => 
-            Alert.alert(title, message)
-          )
-        );
+    const handleDeleteSubject = (index) => {
+      if (subjects.length <= 1) {
+        Alert.alert("Cannot Remove", "At least one topic is required");
         return;
       }
-      const updated = [...subjects];
-      updated[subjectIndex].topics.splice(topicIndex, 1);
-      setSubjects(updated);
-    };
-
-    const handleRemoveSubject = (subjectIndex) => {
-      setSubjects(prev => prev.filter((_, index) => index !== subjectIndex));
+      
+      setSubjects(prev => prev.filter((_, i) => i !== index));
     };
 
     return (
       <View className="flex-1 bg-pink-50 p-5 w-screen">
-        <View className="flex-row justify-between items-center mb-4">
-          <TranslatedText 
-            text="Subjects & Topics" 
-            className="text-xl font-bold text-[#BD835D]"
-          />
-          <TouchableOpacity
-            className="bg-blue-500 py-2 px-4 rounded"
-            onPress={handleAddSubject}
+        <Text 
+          className="text-xl font-bold mb-4"
+        >
+          Subjects & Topics
+        </Text>
+
+        <TouchableOpacity
+          className="bg-blue-500 py-3 px-4 rounded-lg mb-4 items-center"
+          onPress={handleAddSubject}
+        >
+          <Text 
+            className="text-white font-bold"
           >
-            <TranslatedText 
-              text="+ Add Subject" 
-              className="text-white font-bold"
-            />
-          </TouchableOpacity>
-        </View>
+            + Add Subject
+          </Text>
+        </TouchableOpacity>
 
         {subjects.length === 0 ? (
-          <View className="flex-1 justify-center items-center mt-10">
-            <TranslatedText 
-              text="No subjects added yet" 
-              className="text-gray-500"
-            />
-          </View>
+          <Text 
+            className="text-gray-500 text-center p-4"
+          >
+            No subjects added yet
+          </Text>
         ) : (
-          <ScrollView className="flex-1">
-            {subjects.map((subject, subjectIndex) => (
-              <View key={`subject-${subjectIndex}`} className="bg-pink-100 rounded-lg p-4 mb-3">
-                <View className="flex-row justify-between items-center mb-2">
-                  <TranslatedText 
-                    text={subject.name} 
+          <ScrollView nestedScrollEnabled={true}>
+            {subjects.map((subject, index) => (
+              <View
+                key={`subject-${index}`}
+                className="bg-white rounded-lg p-4 mb-3 shadow-sm"
+              >
+                <View className="flex-row justify-between items-center">
+                  <Text 
                     className="text-lg font-semibold"
-                  />
-                  <View className="flex-row">
-                    <TouchableOpacity
-                      className="ml-3"
-                      onPress={() => handleEditSubject(subjectIndex)}
-                    >
-                      <MaterialIcons name="edit" size={20} color="#555" />
+                  >
+                    {subject.name}
+                  </Text>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity onPress={() => handleEditSubject(index)}>
+                      <MaterialIcons name="edit" size={20} color="#4299e1" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      className="ml-3"
-                      onPress={() => handleRemoveSubject(subjectIndex)}
-                    >
-                      <MaterialIcons name="delete" size={20} color="#ff4444" />
+                    <TouchableOpacity onPress={() => handleDeleteSubject(index)}>
+                      <MaterialIcons name="delete" size={20} color="#f56565" />
                     </TouchableOpacity>
                   </View>
                 </View>
-
-                <View className="flex-row flex-wrap gap-2">
-                  {subject.topics.map((topic, topicIndex) => (
-                    <View key={`topic-${topicIndex}`} className="flex-row items-center bg-gray-200 py-1 px-3 rounded-full">
-                      <TranslatedText 
-                        text={topic} 
-                        className="mr-1"
-                      />
-                      <TouchableOpacity onPress={() => handleRemoveTopic(subjectIndex, topicIndex)}>
-                        <MaterialIcons name="close" size={16} color="#ff4444" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
+                <Text 
+                  className="text-gray-600 mt-2"
+                >
+                  {subject.topics.join(", ")}
+                </Text>
               </View>
             ))}
           </ScrollView>
@@ -382,15 +347,15 @@ const Planner = ({ navigation, translation }) => {
           animationOut="slideOutDown"
         >
           <View className="bg-white rounded-t-xl p-6" style={{ borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-            <TranslatedText 
-              text={isEditing ? 'Edit Subject' : 'Add New Subject'} 
+            <Text 
               className="text-xl font-bold text-center mb-5"
-            />
+            >
+              {isEditing ? 'Edit Subject' : 'Add New Subject'}
+            </Text>
             
             <TextInput
               className="border border-gray-300 rounded-lg p-3 mb-4"
-              placeholder={translation.language === 'en' ? "Subject name*" : 
-                           translation.translate("Subject name*")}
+              placeholder="Subject name*"
               value={newSubject}
               onChangeText={setNewSubject}
               autoFocus
@@ -398,8 +363,7 @@ const Planner = ({ navigation, translation }) => {
             
             <TextInput
               className="border border-gray-300 rounded-lg p-3 h-24 mb-4 text-align-top"
-              placeholder={translation.language === 'en' ? "Enter topics, separated by commas*" : 
-                           translation.translate("Enter topics, separated by commas*")}
+              placeholder="Enter topics, separated by commas*"
               value={newTopics}
               onChangeText={setNewTopics}
               multiline
@@ -410,20 +374,22 @@ const Planner = ({ navigation, translation }) => {
                 className="bg-red-500 flex-1 py-3 rounded-lg mx-1 items-center"
                 onPress={() => setIsModalVisible(false)}
               >
-                <TranslatedText 
-                  text="Cancel" 
+                <Text 
                   className="text-white font-bold"
-                />
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 className="bg-blue-500 flex-1 py-3 rounded-lg mx-1 items-center"
                 onPress={handleSave}
               >
-                <TranslatedText 
-                  text={isEditing ? 'Update' : 'Add'} 
+                <Text 
                   className="text-white font-bold"
-                />
+                >
+                  {isEditing ? 'Update' : 'Add'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -519,33 +485,37 @@ const Planner = ({ navigation, translation }) => {
 
     return (
       <View className="flex-1 bg-pink-50 p-5 w-screen">
-        <TranslatedText 
-          text="Set Subject & Topic Proficiency" 
+        <Text 
           className="text-xl font-bold mb-4"
-        />
+        >
+          Set Subject & Topic Proficiency
+        </Text>
 
         <ScrollView className="flex-1">
           {/* Subjects Section */}
           <View className="mb-8">
-            <TranslatedText 
-              text="Subjects Proficiency" 
+            <Text 
               className="text-lg font-bold mb-3"
-            />
+            >
+              Subjects Proficiency
+            </Text>
             {subjectsWithDifficulty.length === 0 ? (
-              <TranslatedText 
-                text="No subjects added" 
+              <Text 
                 className="text-gray-500 text-center"
-              />
+              >
+                No subjects added
+              </Text>
             ) : (
               subjectsWithDifficulty.map((subject, subjectIndex) => (
                 <View
                   key={`subject-${subjectIndex}`}
                   className={`${getProficiencyBgColor(subject.proficiency)} flex-row items-center rounded-lg p-4 mb-3 border-l-4 border-gray-300`}
                 >
-                  <TranslatedText 
-                    text={subject.name} 
+                  <Text 
                     className="text-lg flex-1"
-                  />
+                  >
+                    {subject.name}
+                  </Text>
 
                   <View className="flex-row mt-2">
                     {['easy', 'moderate', 'hard'].map((level) => (
@@ -554,10 +524,11 @@ const Planner = ({ navigation, translation }) => {
                         className={`${getProficiencyColor(level)} py-2 px-4 rounded-full mr-2 ${subject.proficiency === level ? 'border border-black' : ''}`}
                         onPress={() => updateSubjectProficiency(subjectIndex, level)}
                       >
-                        <TranslatedText 
-                          text={level.charAt(0).toUpperCase() + level.slice(1)} 
+                        <Text 
                           className="text-white font-bold text-xs"
-                        />
+                        >
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -568,38 +539,43 @@ const Planner = ({ navigation, translation }) => {
 
           {/* Topics Section */}
           <View>
-            <TranslatedText 
-              text="Topics Proficiency" 
+            <Text 
               className="text-lg font-bold mb-3"
-            />
+            >
+              Topics Proficiency
+            </Text>
             {subjectsWithDifficulty.length === 0 ? (
-              <TranslatedText 
-                text="No subjects available" 
+              <Text 
                 className="text-gray-500 text-center"
-              />
+              >
+                No subjects available
+              </Text>
             ) : (
               subjectsWithDifficulty.map((subject, subjectIndex) => (
                 <View key={`topic-group-${subjectIndex}`} className="mb-6">
-                  <TranslatedText 
-                    text={subject.name} 
+                  <Text 
                     className="font-semibold mb-2"
-                  />
+                  >
+                    {subject.name}
+                  </Text>
 
                   {subject.topics.length === 0 ? (
-                    <TranslatedText 
-                      text="No topics added" 
+                    <Text 
                       className="text-gray-500 italic"
-                    />
+                    >
+                      No topics added
+                    </Text>
                   ) : (
                     subject.topics.map((topic, topicIndex) => (
                       <View
                         key={`topic-${topicIndex}`}
                         className={`${getProficiencyBgColor(topic.proficiency)} flex-row items-center rounded-lg p-3 mb-2 ml-4 border-l-4 border-gray-300`}
                       >
-                        <TranslatedText 
-                          text={topic.name} 
+                        <Text 
                           className="flex-1"
-                        />
+                        >
+                          {topic.name}
+                        </Text>
 
                         <View className="flex-row mt-1">
                           {['easy', 'moderate', 'hard'].map((level) => (
@@ -608,10 +584,11 @@ const Planner = ({ navigation, translation }) => {
                               className={`${getProficiencyColor(level)} py-1 px-3 rounded-full mr-2 ${topic.proficiency === level ? 'border border-black' : ''}`}
                               onPress={() => updateTopicProficiency(subjectIndex, topicIndex, level)}
                             >
-                              <TranslatedText 
-                                text={level.charAt(0).toUpperCase() + level.slice(1)} 
+                              <Text 
                                 className="text-white font-bold text-xs"
-                              />
+                              >
+                                {level.charAt(0).toUpperCase() + level.slice(1)}
+                              </Text>
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -631,86 +608,69 @@ const Planner = ({ navigation, translation }) => {
   const ReviewSlide = memo(() => {
     return (
       <View className="flex-1 bg-pink-50 p-5 w-screen">
-        <TranslatedText 
-          text="Review & Confirm" 
+        <Text 
           className="text-xl font-bold mb-4"
-        />
+        >
+          Review & Confirm
+        </Text>
 
-        <TranslatedText 
-          text={`From: ${selectedDate.toDateString()}`} 
+        <Text 
           className="mb-2"
-        />
-        <TranslatedText 
-          text={`To: ${endDate.toDateString()}`} 
+        >
+          From: {selectedDate.toDateString()}
+        </Text>
+        <Text 
           className="mb-6"
-        />
+        >
+          To: {endDate.toDateString()}
+        </Text>
 
-        <TranslatedText 
-          text="Time Slots:" 
+        <Text 
           className="font-bold mb-2"
-        />
+        >
+          Time Slots:
+        </Text>
         {timeSlots.map((slot, index) => (
-          <TranslatedText 
+          <Text 
             key={`review-slot-${index}`}
-            text={`Slot ${index + 1}: ${slot.from.hour.toString().padStart(2, "0")}:${slot.from.minute.toString().padStart(2, "0")} - ${slot.to.hour.toString().padStart(2, "0")}:${slot.to.minute.toString().padStart(2, "0")}`}
             className="mb-1"
-          />
+          >
+            {`Slot ${index + 1}: ${slot.from.hour.toString().padStart(2, "0")}:${slot.from.minute.toString().padStart(2, "0")} - ${slot.to.hour.toString().padStart(2, "0")}:${slot.to.minute.toString().padStart(2, "0")}`}
+          </Text>
         ))}
 
-        <TranslatedText 
-          text="Subjects:" 
+        <Text 
           className="font-bold mt-4 mb-2"
-        />
+        >
+          Subjects:
+        </Text>
         {subjects.map((subject, index) => (
-          <TranslatedText 
+          <Text 
             key={`review-subject-${index}`}
-            text={`${subject.name}: ${subject.topics.join(', ')}`}
             className="mb-1"
-          />
+          >
+            {`${subject.name}: ${subject.topics.join(', ')}`}
+          </Text>
         ))}
 
         <TouchableOpacity
           className="bg-green-500 py-3 rounded-lg mt-6 items-center"
-          disabled={isLoading}
-          onPress={async () => {
-            try {
-              setIsLoading(true);
-              const response = await fetch('https://n8n-jeni.onrender.com/webhook/planner', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  selectedDate: selectedDate.toISOString(),
-                  timeSlots: timeSlots,
-                  subjects: subjects,
-                }),
-              });
-
-              const data = await response.json();
-              console.log("API Response:", JSON.stringify(data, null, 2));
-              
-              // Save to Appwrite
-              const user = await getCurrentUser();
-              if (user) {
-                await savePlanner(user.$id, data);
-              }
-              
-              // Navigate back to index
-              router.replace("/");
-            } catch (error) {
-              console.error('Error:', error);
-              alert('Failed to generate planner. Please try again.');
-            } finally {
-              setIsLoading(false);
-            }
-          }}
+          onPress={() =>
+            router.dismissTo({
+              pathname: "/",
+              params: {
+                selectedDate: selectedDate.toISOString(),
+                timeSlots: JSON.stringify(timeSlots),
+                subjects,
+              },
+            })
+          }
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white font-bold">Confirm</Text>
-          )}
+          <Text 
+            className="text-white font-bold"
+          >
+            Confirm
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -759,10 +719,11 @@ const Planner = ({ navigation, translation }) => {
             onPress={prevSlide}
           >
             <MaterialIcons name="arrow-back" color={"#AA7589"} />
-            <TranslatedText 
-              text="Previous" 
+            <Text 
               className="font-bold text-[#AA7589]"
-            />
+            >
+              Previous
+            </Text>
           </TouchableOpacity>
         )}
         {currentIndex < slidesArray.length - 1 && (
@@ -770,10 +731,11 @@ const Planner = ({ navigation, translation }) => {
             className="py-3 px-5 rounded-lg mx-1 flex-row items-center gap-2"
             onPress={nextSlide}
           >
-            <TranslatedText 
-              text="Next" 
+            <Text 
               className="font-bold text-[#AA7589]"
-            />
+            >
+              Next
+            </Text>
             <MaterialIcons name="arrow-forward" color={"#AA7589"} />
           </TouchableOpacity>
         )}
@@ -804,4 +766,4 @@ const Planner = ({ navigation, translation }) => {
   );
 };
 
-export default withTranslation(Planner);
+export default Planner;
