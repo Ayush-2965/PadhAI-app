@@ -33,7 +33,7 @@ export default function Index() {
         if (!hasSeenOnboarding) {
           router.replace("/onboarding");
         } else if (isAuthenticated) {
-          router.replace("(tabs)");
+          router.replace("/language");
         } else {
           router.replace("(auth)");
         }
