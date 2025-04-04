@@ -34,7 +34,7 @@ const loginPage = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Image source={require('../../assets/images/logo.png')} />
-        <Text className="text-[24px] font-semibold mb-5 flex justify-start w-full">Create Your Account</Text>
+        <Text className="text-[24px] font-semibold mb-5 flex justify-start w-full">Login Your Account</Text>
 
         {/*  Email Input */}
         <TextInput
