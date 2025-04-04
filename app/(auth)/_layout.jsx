@@ -4,7 +4,7 @@ import * as Linking from "expo-linking";
 
 export default function Layout({ children }) {
     const router = useRouter();
-    const pathname = usePathname(); // ✅ Get current route
+    const pathname = usePathname(); // Get current route
     
     useEffect(() => {
 
@@ -16,7 +16,7 @@ export default function Layout({ children }) {
                 console.log("📌 Parsed Path:", path, queryParams);
                 console.log("📍 Current Route:", pathname);
 
-                // ✅ If deep link is "localhost", redirect to "/auth"
+                //  If deep link is "localhost", redirect to "/auth"
                 if (path === "") {
                     console.log("🚀 Redirecting from `/localhost` to `/auth`...");
                     router.replace("/(tabs)");

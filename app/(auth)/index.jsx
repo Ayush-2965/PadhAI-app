@@ -17,7 +17,7 @@ const SignupScreen = () => {
 
     try {
       const response = await signUp(email, password);
-    
+
       if (response.success) {
         Alert.alert("Success", response.message);
         router.replace("/(auth)/login"); // Redirect to login page
@@ -30,12 +30,12 @@ const SignupScreen = () => {
     } catch (error) {
       Alert.alert("Signup Failed", error.message || "Something went wrong!");
     }
-    
+
   };
 
   const handleGoogleSignup = async () => {
     try {
-      const res=await loginWithGoogle("google");
+      const res = await loginWithGoogle("google");
       if (res.success) {
 
         router.replace("/(tabs)"); // Redirect after signup/login
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   orText: {
     fontSize: 13,
     verticalAlign: "center",
-    height:"max"
+    height: "max"
   },
   loginText: {
     marginTop: 35,

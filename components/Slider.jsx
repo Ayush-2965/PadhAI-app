@@ -4,6 +4,7 @@ import Slides from '../data/index';
 import SlideItem, { colors } from './SliderItem';
 import Pagination from './Pagination';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import * as SecureStore from "expo-secure-store"
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('screen');
@@ -12,6 +13,11 @@ const Slider = () => {
     const [index, setIndex] = useState(0);
     const flatListRef = useRef(null);
     const translateX = useRef(new Animated.Value(0)).current; // Check session
+
+    const finishOnboarding = async () => {
+        await SecureStore.setItemAsync("hasSeenOnboarding", "true"); // ✅ Securely store onboarding status
+        router.replace("(auth)"); // Move to authentication after onboarding
+      };
 
     const handleNext = () => {
         if (index < Slides.length - 1) {
@@ -35,7 +41,7 @@ const Slider = () => {
 
         }
         if (index===Slides.length-1) {
-            router.push("/(auth)")
+           finishOnboarding()
         }
     }
         

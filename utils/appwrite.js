@@ -1,4 +1,4 @@
-import { Client, Account, ID,Databases,Permission, Role  } from "react-native-appwrite";
+import { Client, Account, ID,Databases,Permission, Role, OAuthProvider  } from "react-native-appwrite";
 import * as SecureStore from "expo-secure-store";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
@@ -49,17 +49,18 @@ export const loginWithGoogle = async (provider) => {
         deepLink.hostname = "localhost";
     }
     const scheme = `${deepLink.protocol}//`; // e.g., 'exp://', 'padhai://'
-
-    const loginUrl = account.createOAuth2Session(provider, `${deepLink}`, `${deepLink}`);
+    const authprovider=provider
+    const loginUrl = account.createOAuth2Token(OAuthProvider.Google, `${deepLink}`, `${deepLink}`
+    );
     const result = await WebBrowser.openAuthSessionAsync(`${loginUrl}`, scheme);
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+    // await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(loginUrl));
     if (result.type === "success" && result.url) {
         const url = new URL(result.url);
         const secret = url.searchParams.get("secret");
         const userId = url.searchParams.get("userId");
-
-        await account.createSession(userId, secret);
-        
+        const session = await account.createSession(userId,secret);
+        await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+        console.log("✅ Google Sign-in Successful. Stored Session:", session);
        
     } else {
         console.error("❌ OAuth failed or was canceled.");
