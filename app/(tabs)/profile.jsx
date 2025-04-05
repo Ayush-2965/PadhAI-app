@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCurrentUser, getUserStudySessions, logout } from '../../utils/appwrite';
+import { getCurrentUser, getUserStudySessions, getUserPublicSpeakingFeedback, logout } from '../../utils/appwrite';
 import { router } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { BarChart, PieChart, LineChart } from 'react-native-gifted-charts';
@@ -11,6 +11,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
   const [studySessions, setStudySessions] = useState([]);
+  const [publicSpeakingFeedback, setPublicSpeakingFeedback] = useState([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => {
@@ -31,6 +32,8 @@ const Profile = () => {
   useEffect(() => {
     if (activeTab === 'analytics' && user) {
       fetchAnalyticsData();
+    } else if (activeTab === 'speaking' && user) {
+      fetchPublicSpeakingData();
     }
   }, [activeTab, user]);
 
@@ -41,6 +44,18 @@ const Profile = () => {
       setStudySessions(sessions);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const fetchPublicSpeakingData = async () => {
+    try {
+      setAnalyticsLoading(true);
+      const feedback = await getUserPublicSpeakingFeedback(user.$id);
+      setPublicSpeakingFeedback(feedback);
+    } catch (error) {
+      console.error('Error fetching public speaking data:', error);
     } finally {
       setAnalyticsLoading(false);
     }
@@ -163,6 +178,12 @@ const Profile = () => {
         <TouchableOpacity style={styles.menuItem} onPress={() => setActiveTab('analytics')}>
           <MaterialIcons name="analytics" size={24} color="#A0456E" />
           <Text style={styles.menuItemText}>View Analytics</Text>
+          <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem} onPress={() => setActiveTab('speaking')}>
+          <MaterialIcons name="mic" size={24} color="#A0456E" />
+          <Text style={styles.menuItemText}>Public Speaking History</Text>
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
         
@@ -327,30 +348,121 @@ const Profile = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#A0456E" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </SafeAreaView>
-    );
-  }
+  const renderPublicSpeakingTab = () => {
+    if (analyticsLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#A0456E" />
+          <Text style={styles.loadingText}>Loading public speaking history...</Text>
+        </View>
+      );
+    }
 
-  if (!user) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.notLoggedInContainer}>
-          <MaterialIcons name="account-circle" size={64} color="#DB8AA9" />
-          <Text style={styles.notLoggedInTitle}>Not Logged In</Text>
-          <Text style={styles.notLoggedInText}>
-            Please log in to view your profile and analytics.
+    if (!publicSpeakingFeedback || publicSpeakingFeedback.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <MaterialIcons name="mic-off" size={60} color="#DDD" />
+          <Text style={styles.emptyTitle}>No speaking records yet</Text>
+          <Text style={styles.emptyText}>
+            Try the Public Speaking AI feature to get feedback on your speaking skills.
           </Text>
           <TouchableOpacity 
-            style={styles.loginButton}
-            onPress={() => router.push('/login')}
+            style={styles.startButton}
+            onPress={() => router.push('/createVideo')}
           >
-            <Text style={styles.loginButtonText}>Log In</Text>
+            <Text style={styles.startButtonText}>Try Now</Text>
           </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // console.log("Public speaking feedback in profile:", publicSpeakingFeedback);
+
+    return (
+      <View style={styles.publicSpeakingContainer}>
+        <Text style={styles.sectionTitle}>Your Public Speaking History</Text>
+        
+        {publicSpeakingFeedback.map((item, index) => {
+          // Parse JSON strings safely
+          let improvementSuggestions = [];
+          try {
+            improvementSuggestions = typeof item.improvementSuggestions === 'string' 
+              ? JSON.parse(item.improvementSuggestions) 
+              : (Array.isArray(item.improvementSuggestions) ? item.improvementSuggestions : []);
+          } catch (error) {
+            console.error("Error parsing improvement suggestions:", error);
+          }
+          
+          const formattedDate = item.createdAt 
+            ? new Date(item.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            : "Unknown date";
+          
+          return (
+            <View key={index} style={styles.feedbackCard}>
+              <View style={styles.feedbackHeader}>
+                <Text style={styles.feedbackDate}>{formattedDate}</Text>
+                <View style={styles.fillerWordBadge}>
+                  <Text style={styles.fillerWordCount}>{item.fillerWordsCount || 0} filler words</Text>
+                </View>
+              </View>
+              
+              <Text style={styles.transcriptionTitle}>Transcription:</Text>
+              <Text style={styles.transcriptionText}>
+                {item.transcription || "No transcription available"}
+              </Text>
+              
+              {improvementSuggestions && improvementSuggestions.length > 0 ? (
+                <View style={styles.suggestionsSection}>
+                  <Text style={styles.suggestionsTitle}>Suggestions:</Text>
+                  {improvementSuggestions.map((suggestion, idx) => (
+                    <View key={idx} style={styles.suggestionItem}>
+                      <Ionicons name="bulb-outline" size={16} color="#A0456E" />
+                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.suggestionsSection}>
+                  <Text style={styles.suggestionsTitle}>Suggestions:</Text>
+                  <View style={styles.suggestionItem}>
+                    <Ionicons name="bulb-outline" size={16} color="#A0456E" />
+                    <Text style={styles.suggestionText}>
+                      No specific suggestions available for this recording.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'profile':
+        return renderProfileTab();
+      case 'analytics':
+        return renderAnalyticsTab();
+      case 'speaking':
+        return renderPublicSpeakingTab();
+      default:
+        return renderProfileTab();
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#A0456E" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
@@ -358,7 +470,9 @@ const Profile = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {activeTab === 'profile' ? renderProfileTab() : renderAnalyticsTab()}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {renderContent()}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -639,6 +753,139 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#A0456E',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDD',
+  },
+  tabButton: {
+    flex: 1,
+    padding: 10,
+  },
+  activeTabButton: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#A0456E',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  activeTabText: {
+    color: '#A0456E',
+  },
+  scrollContainer: {
+    padding: 10,
+  },
+  feedbackCard: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  feedbackHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  feedbackDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  fillerWordBadge: {
+    backgroundColor: '#A0456E15',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 15,
+  },
+  fillerWordCount: {
+    fontSize: 12,
+    color: '#A0456E',
+    fontWeight: '500',
+  },
+  transcriptionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  transcriptionText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  suggestionsSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    paddingTop: 10,
+    marginTop: 5,
+  },
+  suggestionsTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    alignItems: 'flex-start',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#555',
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
+  },
+  publicSpeakingContainer: {
+    padding: 15,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+    marginTop: 50,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  startButton: {
+    backgroundColor: '#A0456E',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+  },
+  startButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

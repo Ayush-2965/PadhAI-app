@@ -557,7 +557,7 @@ const Planner = ({ navigation }) => {
               });
 
               const data = await response.json();
-              console.log("API Response:", JSON.stringify(data, null, 2));
+              // console.log("API Response:", JSON.stringify(data, null, 2));
               
               // Save to Appwrite
               const user = await getCurrentUser();

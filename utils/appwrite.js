@@ -14,7 +14,8 @@ const SESSION_KEY = "user_session";
 const DATABASE_ID="67dfb11f000d20bf0878";
 const COLLECTION_ID="67dfb12e0002895ef8d3"
 const PLANNER_COLLECTION_ID = "67efc1b000388393c477";
-const STUDY_SESSION_COLLECTION_ID = "67f009270007cb4e95d1"; // Replace with your actual collection ID
+const STUDY_SESSION_COLLECTION_ID = "67f009270007cb4e95d1"; 
+const PUBLIC_SPEAKING_COLLECTION_ID = "67f044900019d57cb03d";
 
 //  Get stored session
 export const getSession = async () => {
@@ -62,7 +63,7 @@ export const loginWithGoogle = async (provider) => {
         const userId = url.searchParams.get("userId");
         const session = await account.createSession(userId,secret);
         await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
-        console.log("✅ Google Sign-in Successful. Stored Session:", session);
+        // console.log(" Google Sign-in Successful. Stored Session:", session);
        
     } else {
         console.error("❌ OAuth failed or was canceled.");
@@ -238,6 +239,68 @@ export const getUserStudySessions = async (userId) => {
     return response.documents;
   } catch (error) {
     console.error("Error fetching study sessions:", error);
+    return [];
+  }
+};
+
+// Add function to save public speaking feedback
+export const savePublicSpeakingFeedback = async (userId, feedbackData) => {
+  try {
+    // console.log("Saving to Appwrite:", userId, feedbackData);
+    
+    // Ensure we have valid data before saving
+    if (!feedbackData || !feedbackData.transcription) {
+      console.error("Invalid feedback data:", feedbackData);
+      throw new Error("Invalid feedback data");
+    }
+
+    // Prepare data for Appwrite
+    const documentData = {
+      userId,
+      transcription: feedbackData.transcription || "",
+      fillerWordsCount: feedbackData.fillerWordsCount || 0,
+      mistakes: JSON.stringify(feedbackData.mistakes || []),
+      alternativeWords: JSON.stringify(feedbackData.alternativeWords || []),
+      improvementSuggestions: JSON.stringify(feedbackData.improvementSuggestions || []),
+      createdAt: new Date().toISOString(),
+    };
+
+    // console.log("Document data to save:", documentData);
+
+    const response = await databases.createDocument(
+      DATABASE_ID,
+      PUBLIC_SPEAKING_COLLECTION_ID,
+      ID.unique(),
+      documentData,
+      [
+        Permission.read(Role.user(userId)),
+        Permission.update(Role.user(userId)),
+        Permission.delete(Role.user(userId))
+      ]
+    );
+    
+    // console.log("Appwrite save response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error saving public speaking feedback:", error);
+    throw error;
+  }
+};
+
+// Add function to get user's public speaking feedback history
+export const getUserPublicSpeakingFeedback = async (userId) => {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      PUBLIC_SPEAKING_COLLECTION_ID,
+      [
+        Query.equal("userId", userId),
+        Query.orderDesc("createdAt"),
+      ]
+    );
+    return response.documents;
+  } catch (error) {
+    console.error("Error fetching public speaking feedback:", error);
     return [];
   }
 };
