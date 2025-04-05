@@ -72,16 +72,16 @@ const Profile = () => {
 
   const getSubjectData = () => {
     const subjectMap = {};
-    
+
     studySessions.forEach(session => {
       if (!subjectMap[session.subject]) {
         subjectMap[session.subject] = 0;
       }
       subjectMap[session.subject] += session.studyTime;
     });
-    
+
     const colors = ['#A0456E', '#DB8AA9', '#FFB6C1', '#FFC0CB', '#FFD1DC'];
-    
+
     return Object.keys(subjectMap).map((subject, index) => ({
       value: subjectMap[subject] / 60, // Convert seconds to minutes
       label: subject,
@@ -95,7 +95,7 @@ const Profile = () => {
   const getCompletionRateData = () => {
     const completed = studySessions.filter(session => session.completed).length;
     const incomplete = studySessions.length - completed;
-    
+
     return [
       {
         value: completed,
@@ -116,19 +116,19 @@ const Profile = () => {
       date.setDate(date.getDate() - i);
       return date.toISOString().split('T')[0];
     }).reverse();
-    
+
     const dailyStudyTime = {};
     last7Days.forEach(day => {
       dailyStudyTime[day] = 0;
     });
-    
+
     studySessions.forEach(session => {
       const sessionDate = new Date(session.startTime).toISOString().split('T')[0];
       if (dailyStudyTime[sessionDate] !== undefined) {
         dailyStudyTime[sessionDate] += session.studyTime / 60; // Convert to minutes
       }
     });
-    
+
     return Object.keys(dailyStudyTime).map(date => ({
       value: dailyStudyTime[date],
       label: date.slice(5), // Show only MM-DD
@@ -138,7 +138,7 @@ const Profile = () => {
 
   const renderProfileTab = () => {
     if (!user) return null;
-    
+
     return (
       <View style={styles.profileContainer}>
         <View style={styles.profileHeader}>
@@ -152,7 +152,7 @@ const Profile = () => {
             <Text style={styles.userEmail}>{user.email}</Text>
           </View>
         </View>
-        
+
         <View style={styles.statsCard}>
           <Text style={styles.statsTitle}>Study Statistics</Text>
           <View style={styles.statsRow}>
@@ -174,31 +174,31 @@ const Profile = () => {
             </View>
           </View>
         </View>
-        
+
         <TouchableOpacity style={styles.menuItem} onPress={() => setActiveTab('analytics')}>
           <MaterialIcons name="analytics" size={24} color="#A0456E" />
           <Text style={styles.menuItemText}>View Analytics</Text>
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.menuItem} onPress={() => setActiveTab('speaking')}>
           <MaterialIcons name="mic" size={24} color="#A0456E" />
           <Text style={styles.menuItemText}>Public Speaking History</Text>
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.menuItem}>
           <MaterialIcons name="settings" size={24} color="#A0456E" />
           <Text style={styles.menuItemText}>Settings</Text>
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.menuItem}>
           <MaterialIcons name="help" size={24} color="#A0456E" />
           <Text style={styles.menuItemText}>Help & Support</Text>
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialIcons name="logout" size={24} color="white" />
           <Text style={styles.logoutButtonText}>Logout</Text>
@@ -227,7 +227,7 @@ const Profile = () => {
             <Text style={styles.analyticsTitle}>Study Analytics</Text>
             <View style={{ width: 24 }} />
           </View>
-          
+
           <View style={styles.emptyStateContainer}>
             <MaterialIcons name="analytics" size={64} color="#DB8AA9" />
             <Text style={styles.emptyStateTitle}>No Study Data Yet</Text>
@@ -248,7 +248,7 @@ const Profile = () => {
           <Text style={styles.analyticsTitle}>Study Analytics</Text>
           <View style={{ width: 24 }} />
         </View>
-        
+
         <Text style={styles.chartTitle}>Time Spent by Subject (minutes)</Text>
         <View style={styles.chartContainer}>
           <BarChart
@@ -267,7 +267,7 @@ const Profile = () => {
             maxValue={Math.max(...getSubjectData().map(item => item.value)) * 1.2 || 60}
           />
         </View>
-        
+
         <Text style={styles.chartTitle}>Completion Rate</Text>
         <View style={styles.pieChartContainer}>
           <PieChart
@@ -288,7 +288,7 @@ const Profile = () => {
               );
             }}
           />
-          
+
           <View style={styles.legendContainer}>
             <View style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: '#A0456E' }]} />
@@ -300,7 +300,7 @@ const Profile = () => {
             </View>
           </View>
         </View>
-        
+
         <Text style={styles.chartTitle}>Weekly Study Progress (minutes)</Text>
         <View style={styles.chartContainer}>
           <LineChart
@@ -320,14 +320,14 @@ const Profile = () => {
             xAxisLabelTextStyle={{ color: '#333', textAlign: 'center' }}
           />
         </View>
-        
+
         <Text style={styles.chartTitle}>Recent Study Sessions</Text>
         {studySessions.slice(0, 5).map((session, index) => (
           <View key={index} style={styles.sessionCard}>
             <View style={styles.sessionHeader}>
               <Text style={styles.sessionSubject}>{session.subject}</Text>
               <Text style={[
-                styles.sessionStatus, 
+                styles.sessionStatus,
                 { color: session.completed ? '#4CAF50' : '#FF6B6B' }
               ]}>
                 {session.completed ? 'Completed' : 'Incomplete'}
@@ -366,7 +366,7 @@ const Profile = () => {
           <Text style={styles.emptyText}>
             Try the Public Speaking AI feature to get feedback on your speaking skills.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.startButton}
             onPress={() => router.push('/createVideo')}
           >
@@ -380,28 +380,33 @@ const Profile = () => {
 
     return (
       <View style={styles.publicSpeakingContainer}>
-        <Text style={styles.sectionTitle}>Your Public Speaking History</Text>
-        
+        <View style={styles.analyticsHeader}>
+          <TouchableOpacity onPress={() => setActiveTab('profile')}>
+            <MaterialIcons name="arrow-back" size={24} color="#A0456E" />
+          </TouchableOpacity>
+          <Text style={styles.sectionTitle} className="!mb-0">Your Public Speaking History</Text>
+          <View style={{ width: 24 }} />
+        </View>
         {publicSpeakingFeedback.map((item, index) => {
           // Parse JSON strings safely
           let improvementSuggestions = [];
           try {
-            improvementSuggestions = typeof item.improvementSuggestions === 'string' 
-              ? JSON.parse(item.improvementSuggestions) 
+            improvementSuggestions = typeof item.improvementSuggestions === 'string'
+              ? JSON.parse(item.improvementSuggestions)
               : (Array.isArray(item.improvementSuggestions) ? item.improvementSuggestions : []);
           } catch (error) {
             console.error("Error parsing improvement suggestions:", error);
           }
-          
-          const formattedDate = item.createdAt 
+
+          const formattedDate = item.createdAt
             ? new Date(item.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
             : "Unknown date";
-          
+
           return (
             <View key={index} style={styles.feedbackCard}>
               <View style={styles.feedbackHeader}>
@@ -410,12 +415,12 @@ const Profile = () => {
                   <Text style={styles.fillerWordCount}>{item.fillerWordsCount || 0} filler words</Text>
                 </View>
               </View>
-              
+
               <Text style={styles.transcriptionTitle}>Transcription:</Text>
               <Text style={styles.transcriptionText}>
                 {item.transcription || "No transcription available"}
               </Text>
-              
+
               {improvementSuggestions && improvementSuggestions.length > 0 ? (
                 <View style={styles.suggestionsSection}>
                   <Text style={styles.suggestionsTitle}>Suggestions:</Text>
