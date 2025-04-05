@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCurrentUser, getUserStudySessions, logout } from '../../utils/appwrite';
+import { getCurrentUser, getUserStudySessions, logout, getUserVideos, getVideoPreviewUrl } from '../../utils/appwrite';
 import { router } from 'expo-router';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons, AntDesign } from '@expo/vector-icons';
 import { BarChart, PieChart, LineChart } from 'react-native-gifted-charts';
+import TranslatedText from '../../components/TranslatedText';
+import LanguageSelector from '../../components/LanguageSelector';
+import { Video } from 'expo-av';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -12,6 +15,8 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [studySessions, setStudySessions] = useState([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [userVideos, setUserVideos] = useState([]);
+  const [videosLoading, setVideosLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -34,6 +39,12 @@ const Profile = () => {
     }
   }, [activeTab, user]);
 
+  useEffect(() => {
+    if (activeTab === 'videos' && user) {
+      fetchUserVideos();
+    }
+  }, [activeTab, user]);
+
   const fetchAnalyticsData = async () => {
     try {
       setAnalyticsLoading(true);
@@ -43,6 +54,31 @@ const Profile = () => {
       console.error('Error fetching analytics data:', error);
     } finally {
       setAnalyticsLoading(false);
+    }
+  };
+
+  const fetchUserVideos = async () => {
+    try {
+      setVideosLoading(true);
+      const videos = await getUserVideos(user.$id);
+      
+      // Transform video data to include video URIs
+      const transformedVideos = videos.map(video => ({
+        id: video.$id,
+        videoUri: getVideoPreviewUrl(video.fileId),
+        description: video.description,
+        subject: video.subject,
+        createdAt: new Date(video.createdAt).toLocaleDateString(),
+        likes: video.likes,
+        comments: video.comments,
+        shares: video.shares
+      }));
+      
+      setUserVideos(transformedVideos);
+    } catch (error) {
+      console.error('Error fetching user videos:', error);
+    } finally {
+      setVideosLoading(false);
     }
   };
 
@@ -121,6 +157,116 @@ const Profile = () => {
     }));
   };
 
+  const LanguageSettingsTab = () => {
+    return (
+      <View style={styles.tabContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => setActiveTab('profile')}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+         
+          
+        </View>
+        
+        <View style={styles.content}>
+          <Text style={styles.languageHeader}>Choose a Language</Text>
+          <LanguageSelector style={styles.languageSelector} />
+        </View>
+      </View>
+    );
+  };
+
+  const MyVideosTab = () => {
+    return (
+      <View style={styles.tabContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => setActiveTab('profile')}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <TranslatedText 
+            text="My Videos" 
+            style={styles.headerTitle}
+          />
+        </View>
+        
+        {videosLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#A0456E" />
+            <TranslatedText text="Loading videos..." style={styles.loadingText} />
+          </View>
+        ) : userVideos.length === 0 ? (
+          <View style={styles.emptyStateContainer}>
+            <MaterialIcons name="videocam" size={64} color="#DDB8C7" />
+            <TranslatedText 
+              text="No videos uploaded yet" 
+              style={styles.emptyStateTitle} 
+            />
+            <TranslatedText 
+              text="Your uploaded educational videos will appear here" 
+              style={styles.emptyStateMessage} 
+            />
+            <TouchableOpacity 
+              style={styles.uploadVideoButton}
+              onPress={() => router.push('/videos')}
+            >
+              <AntDesign name="plus" size={24} color="white" />
+              <TranslatedText text="Upload New Video" style={styles.uploadVideoButtonText} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={userVideos}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.videoCard}>
+                <Video
+                  source={{ uri: item.videoUri }}
+                  style={styles.videoThumbnail}
+                  resizeMode="cover"
+                  useNativeControls
+                />
+                <View style={styles.videoInfo}>
+                  <TranslatedText text={item.description} style={styles.videoTitle} numberOfLines={2} />
+                  <View style={styles.videoMetaRow}>
+                    <View style={styles.videoMeta}>
+                      <MaterialIcons name="category" size={16} color="#A0456E" />
+                      <TranslatedText text={item.subject} style={styles.videoMetaText} />
+                    </View>
+                    <View style={styles.videoMeta}>
+                      <MaterialIcons name="date-range" size={16} color="#A0456E" />
+                      <TranslatedText text={item.createdAt} style={styles.videoMetaText} />
+                    </View>
+                  </View>
+                  <View style={styles.videoStats}>
+                    <View style={styles.videoStat}>
+                      <AntDesign name="heart" size={16} color="#A0456E" />
+                      <TranslatedText text={item.likes.toString()} style={styles.videoStatText} />
+                    </View>
+                    <View style={styles.videoStat}>
+                      <AntDesign name="message1" size={16} color="#A0456E" />
+                      <TranslatedText text={item.comments.toString()} style={styles.videoStatText} />
+                    </View>
+                    <View style={styles.videoStat}>
+                      <AntDesign name="sharealt" size={16} color="#A0456E" />
+                      <TranslatedText text={item.shares.toString()} style={styles.videoStatText} />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+            contentContainerStyle={styles.videosList}
+          />
+        )}
+      </View>
+    );
+  };
+
   const renderProfileTab = () => {
     if (!user) return null;
     
@@ -128,59 +274,74 @@ const Profile = () => {
       <View style={styles.profileContainer}>
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>
-              {user.email.charAt(0).toUpperCase()}
-            </Text>
+            <TranslatedText text={user.email.charAt(0).toUpperCase()} style={styles.avatarText} />
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user.email.split('@')[0]}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <TranslatedText text={user.email.split('@')[0]} style={styles.userName} />
+            <TranslatedText text={user.email} style={styles.userEmail} />
           </View>
         </View>
         
         <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Study Statistics</Text>
+          <TranslatedText text="Study Statistics" style={styles.statsTitle} />
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{studySessions.length}</Text>
-              <Text style={styles.statLabel}>Sessions</Text>
+              <TranslatedText text={studySessions.length.toString()} style={styles.statValue} />
+              <TranslatedText text="Sessions" style={styles.statLabel} />
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {Math.round(studySessions.reduce((total, session) => total + session.studyTime, 0) / 60)}
-              </Text>
-              <Text style={styles.statLabel}>Minutes</Text>
+              <TranslatedText 
+                text={Math.round(studySessions.reduce((total, session) => total + session.studyTime, 0) / 60).toString()} 
+                style={styles.statValue} 
+              />
+              <TranslatedText text="Minutes" style={styles.statLabel} />
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {studySessions.filter(session => session.completed).length}
-              </Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <TranslatedText 
+                text={studySessions.filter(session => session.completed).length.toString()} 
+                style={styles.statValue} 
+              />
+              <TranslatedText text="Completed" style={styles.statLabel} />
             </View>
           </View>
         </View>
         
         <TouchableOpacity style={styles.menuItem} onPress={() => setActiveTab('analytics')}>
           <MaterialIcons name="analytics" size={24} color="#A0456E" />
-          <Text style={styles.menuItemText}>View Analytics</Text>
+          <TranslatedText text="View Analytics" style={styles.menuItemText} />
+          <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem} onPress={() => setActiveTab('videos')}>
+          <MaterialIcons name="video-library" size={24} color="#A0456E" />
+          <TranslatedText text="My Videos" style={styles.menuItemText} />
+          <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => setActiveTab('language')}
+        >
+          <MaterialIcons name="language" size={24} color="#A0456E" />
+          <TranslatedText text="Language Settings" style={styles.menuItemText} />
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.menuItem}>
           <MaterialIcons name="settings" size={24} color="#A0456E" />
-          <Text style={styles.menuItemText}>Settings</Text>
+          <TranslatedText text="Settings" style={styles.menuItemText} />
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.menuItem}>
           <MaterialIcons name="help" size={24} color="#A0456E" />
-          <Text style={styles.menuItemText}>Help & Support</Text>
+          <TranslatedText text="Help & Support" style={styles.menuItemText} />
           <MaterialIcons name="chevron-right" size={24} color="#A0456E" />
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialIcons name="logout" size={24} color="white" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <TranslatedText text="Logout" style={styles.logoutButtonText} />
         </TouchableOpacity>
       </View>
     );
@@ -191,139 +352,100 @@ const Profile = () => {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#A0456E" />
-          <Text style={styles.loadingText}>Loading analytics...</Text>
+          <TranslatedText text="Loading analytics..." style={styles.loadingText} />
         </View>
       );
     }
 
     if (studySessions.length === 0) {
       return (
-        <ScrollView style={styles.analyticsContainer}>
-          <View style={styles.analyticsHeader}>
-            <TouchableOpacity onPress={() => setActiveTab('profile')}>
-              <MaterialIcons name="arrow-back" size={24} color="#A0456E" />
-            </TouchableOpacity>
-            <Text style={styles.analyticsTitle}>Study Analytics</Text>
-            <View style={{ width: 24 }} />
-          </View>
-          
-          <View style={styles.emptyStateContainer}>
-            <MaterialIcons name="analytics" size={64} color="#DB8AA9" />
-            <Text style={styles.emptyStateTitle}>No Study Data Yet</Text>
-            <Text style={styles.emptyStateText}>
-              Complete study sessions to see your analytics here.
-            </Text>
-          </View>
-        </ScrollView>
+        <View style={styles.emptyStateContainer}>
+          <MaterialIcons name="analytics" size={64} color="#DDB8C7" />
+          <TranslatedText 
+            text="No study data available yet" 
+            style={styles.emptyStateTitle} 
+          />
+          <TranslatedText 
+            text="Complete some study sessions to see your analytics" 
+            style={styles.emptyStateMessage} 
+          />
+        </View>
       );
     }
 
     return (
-      <ScrollView style={styles.analyticsContainer}>
-        <View style={styles.analyticsHeader}>
-          <TouchableOpacity onPress={() => setActiveTab('profile')}>
-            <MaterialIcons name="arrow-back" size={24} color="#A0456E" />
-          </TouchableOpacity>
-          <Text style={styles.analyticsTitle}>Study Analytics</Text>
-          <View style={{ width: 24 }} />
+      <View style={styles.analyticsContainer}>
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="subject" size={24} color="#A0456E" />
+          <TranslatedText text="Study Time by Subject (minutes)" style={styles.sectionTitle} />
         </View>
-        
-        <Text style={styles.chartTitle}>Time Spent by Subject (minutes)</Text>
         <View style={styles.chartContainer}>
-          <BarChart
+          <BarChart 
+            width={300}
+            height={200}
+            barWidth={22}
+            noOfSections={4}
+            barBorderRadius={4}
             data={getSubjectData()}
-            barWidth={30}
-            spacing={20}
-            roundedTop
-            roundedBottom
-            hideRules
-            xAxisThickness={1}
-            yAxisThickness={1}
-            xAxisColor={'#DDD'}
-            yAxisColor={'#DDD'}
             yAxisTextStyle={{ color: '#333' }}
-            noOfSections={5}
-            maxValue={Math.max(...getSubjectData().map(item => item.value)) * 1.2 || 60}
+            xAxisTextStyle={{ color: '#333' }}
+            showGradient
           />
         </View>
-        
-        <Text style={styles.chartTitle}>Completion Rate</Text>
-        <View style={styles.pieChartContainer}>
+
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="check-circle" size={24} color="#A0456E" />
+          <TranslatedText text="Completion Rate" style={styles.sectionTitle} />
+        </View>
+        <View style={styles.chartContainer}>
           <PieChart
-            data={getCompletionRateData()}
             donut
-            showGradient
-            sectionAutoFocus
-            radius={90}
-            innerRadius={60}
-            centerLabelComponent={() => {
-              return (
-                <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 22, color: '#A0456E', fontWeight: 'bold' }}>
-                    {Math.round((studySessions.filter(session => session.completed).length / studySessions.length) * 100)}%
-                  </Text>
-                  <Text style={{ fontSize: 14, color: '#333' }}>Completed</Text>
-                </View>
-              );
-            }}
+            radius={80}
+            innerRadius={50}
+            data={getCompletionRateData()}
+            centerLabelComponent={() => (
+              <TranslatedText 
+                text={`${Math.round((studySessions.filter(s => s.completed).length / studySessions.length) * 100)}%`} 
+                style={styles.pieChartLabel} 
+              />
+            )}
           />
-          
           <View style={styles.legendContainer}>
             <View style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: '#A0456E' }]} />
-              <Text style={styles.legendText}>Completed</Text>
+              <TranslatedText text="Completed" style={styles.legendText} />
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: '#FFD1DC' }]} />
-              <Text style={styles.legendText}>Incomplete</Text>
+              <TranslatedText text="Incomplete" style={styles.legendText} />
             </View>
           </View>
         </View>
-        
-        <Text style={styles.chartTitle}>Weekly Study Progress (minutes)</Text>
+
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="trending-up" size={24} color="#A0456E" />
+          <TranslatedText text="Weekly Progress (minutes)" style={styles.sectionTitle} />
+        </View>
         <View style={styles.chartContainer}>
           <LineChart
+            width={300}
+            height={200}
             data={getWeeklyProgressData()}
+            spacing={35}
             color="#A0456E"
             thickness={3}
-            dataPointsColor="#DB8AA9"
-            startFillColor="#A0456E"
-            startOpacity={0.2}
+            startFillColor="#DB8AA9"
+            endFillColor="#FFD1DC"
+            startOpacity={0.6}
             endOpacity={0.1}
             initialSpacing={10}
-            endSpacing={10}
-            spacing={30}
-            maxValue={Math.max(...getWeeklyProgressData().map(item => item.value)) * 1.2 || 60}
             noOfSections={5}
             yAxisTextStyle={{ color: '#333' }}
-            xAxisLabelTextStyle={{ color: '#333', textAlign: 'center' }}
+            xAxisTextStyle={{ color: '#333' }}
+            showFractionalValues
           />
         </View>
-        
-        <Text style={styles.chartTitle}>Recent Study Sessions</Text>
-        {studySessions.slice(0, 5).map((session, index) => (
-          <View key={index} style={styles.sessionCard}>
-            <View style={styles.sessionHeader}>
-              <Text style={styles.sessionSubject}>{session.subject}</Text>
-              <Text style={[
-                styles.sessionStatus, 
-                { color: session.completed ? '#4CAF50' : '#FF6B6B' }
-              ]}>
-                {session.completed ? 'Completed' : 'Incomplete'}
-              </Text>
-            </View>
-            <Text style={styles.sessionTopic}>{session.topic}</Text>
-            <View style={styles.sessionDetails}>
-              <Text style={styles.sessionTime}>
-                {new Date(session.startTime).toLocaleDateString()} • {session.timeSlot}
-              </Text>
-              <Text style={styles.sessionDuration}>
-                {Math.round(session.studyTime / 60)} min
-              </Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+      </View>
     );
   };
 
@@ -358,7 +480,18 @@ const Profile = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {activeTab === 'profile' ? renderProfileTab() : renderAnalyticsTab()}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#A0456E" />
+        </View>
+      ) : (
+        <>
+          {activeTab === 'profile' && renderProfileTab()}
+          {activeTab === 'analytics' && renderAnalyticsTab()}
+          {activeTab === 'language' && <LanguageSettingsTab />}
+          {activeTab === 'videos' && <MyVideosTab />}
+        </>
+      )}
     </SafeAreaView>
   );
 };
@@ -517,23 +650,15 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  analyticsHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  analyticsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  chartTitle: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 24,
-    marginBottom: 16,
   },
   chartContainer: {
     backgroundColor: 'white',
@@ -546,16 +671,9 @@ const styles = StyleSheet.create({
     elevation: 2,
     alignItems: 'center',
   },
-  pieChartContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    alignItems: 'center',
+  pieChartLabel: {
+    fontSize: 14,
+    color: '#333',
   },
   legendContainer: {
     flexDirection: 'row',
@@ -590,55 +708,143 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  emptyStateText: {
+  emptyStateMessage: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
   },
-  sessionCard: {
+  tabContainer: {
+    flex: 1,
+    backgroundColor: '#FFE7EF',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    paddingTop: 24,
+  },
+  backButton: {
+    padding: 8,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pencilIcon: {
+    backgroundColor: '#E8DDF2',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#42154F',
+  },
+  headerDot: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#42154F',
+  },
+  skipButton: {
+    padding: 8,
+  },
+  skipText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+    paddingTop:0,
+    alignItems: 'center',
+  },
+  languageHeader: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#42154F',
+    marginBottom: 40,
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  languageSelector: {
+    marginTop: 20,
+    width: '100%',
+  },
+  videosList: {
+    padding: 16,
+  },
+  videoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sessionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  videoThumbnail: {
+    width: '100%',
+    height: 180,
   },
-  sessionSubject: {
+  videoInfo: {
+    padding: 12,
+  },
+  videoTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#A0456E',
-  },
-  sessionStatus: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  sessionTopic: {
-    fontSize: 14,
-    color: '#666',
+    color: '#333',
     marginBottom: 8,
   },
-  sessionDetails: {
+  videoMetaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  videoMeta: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 16,
   },
-  sessionTime: {
+  videoMetaText: {
     fontSize: 12,
-    color: '#888',
+    color: '#666',
+    marginLeft: 4,
   },
-  sessionDuration: {
+  videoStats: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 8,
+  },
+  videoStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  videoStatText: {
     fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+  uploadVideoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A0456E',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    marginTop: 20,
+  },
+  uploadVideoButtonText: {
+    color: 'white',
     fontWeight: 'bold',
-    color: '#A0456E',
+    marginLeft: 8,
   },
 });
 

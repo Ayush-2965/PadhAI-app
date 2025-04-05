@@ -3,45 +3,56 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, Image, Pressable, Tou
 import { useRouter } from "expo-router";
 import { signUp, loginWithGoogle } from "../../utils/appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TranslatedText from '../../components/TranslatedText';
+import { translateText } from '../../utils/i18n';
+import { useLanguage } from '../../context/LanguageContext';
+
 const SignupScreen = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
+  const { language } = useLanguage();
 
   const handleSignup = async () => {
     if (password !== confirmPassword) {
-      return Alert.alert("Passwords do not match");
+      const errorMsg = await translateText("Passwords do not match", language);
+      return Alert.alert(errorMsg);
     }
 
     try {
       const response = await signUp(email, password);
 
       if (response.success) {
-        Alert.alert("Success", response.message);
+        const successTitle = await translateText("Success", language);
+        const successMsg = await translateText(response.message, language);
+        Alert.alert(successTitle, successMsg);
         router.replace("/(auth)/login"); // Redirect to login page
       } else {
-        Alert.alert("Signup Failed", response.message);
+        const errorTitle = await translateText("Signup Failed", language);
+        const errorMsg = await translateText(response.message, language);
+        Alert.alert(errorTitle, errorMsg);
         if (response.message.includes("User already exists")) {
           router.replace("/(auth)/login"); // Redirect if user exists
         }
       }
     } catch (error) {
-      Alert.alert("Signup Failed", error.message || "Something went wrong!");
+      const errorTitle = await translateText("Signup Failed", language);
+      const errorMsg = await translateText(error.message || "Something went wrong!", language);
+      Alert.alert(errorTitle, errorMsg);
     }
-
   };
 
   const handleGoogleSignup = async () => {
     try {
       const res = await loginWithGoogle("google");
       if (res.success) {
-
         router.replace("/(tabs)"); // Redirect after signup/login
       }
     } catch (error) {
-      Alert.alert("Google Signup Failed", error.message || "Try again!");
+      const errorTitle = await translateText("Google Signup Failed", language);
+      const errorMsg = await translateText(error.message || "Try again!", language);
+      Alert.alert(errorTitle, errorMsg);
     }
   };
 
@@ -49,7 +60,10 @@ const SignupScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Image source={require('../../assets/images/logo.png')} />
-        <Text className="text-[24px] font-semibold mb-5 flex justify-start w-full">Create Your Account</Text>
+        <TranslatedText 
+          text="Create Your Account" 
+          className="text-[24px] font-semibold mb-5 flex justify-start w-full" 
+        />
 
         {/*  Email Input */}
         <TextInput
@@ -82,23 +96,43 @@ const SignupScreen = () => {
         />
 
         {/* Signup Button */}
-        <TouchableOpacity className="bg-[#5C1A54] py-3 px-6 rounded-lg w-full mt-5" onPress={handleSignup}>
-          <Text className="text-white text-center text-[18px]">Sign Up</Text>
+        <TouchableOpacity 
+          className="bg-[#5C1A54] py-3 px-6 rounded-lg w-full mt-5" 
+          onPress={handleSignup}
+        >
+          <TranslatedText 
+            text="Sign Up" 
+            className="text-white text-center text-[18px]" 
+          />
         </TouchableOpacity>
 
         <View className="flex-row gap-3 items-center h-max my-5">
           <View className="h-[1px] bg-black w-7"></View>
-          <Text style={styles.orText} className="font-light">or signup with</Text>
+          <TranslatedText 
+            text="or signup with" 
+            style={styles.orText} 
+            className="font-light" 
+          />
           <View className="h-[1px] bg-black w-7"></View>
         </View>
 
-        <TouchableOpacity className="bg-white py-3 px-6 rounded-lg w-full mt-1 flex-row gap-4 justify-center border-[1px] border-[#ccc]" onPress={handleGoogleSignup}>
+        <TouchableOpacity 
+          className="bg-white py-3 px-6 rounded-lg w-full mt-1 flex-row gap-4 justify-center border-[1px] border-[#ccc]" 
+          onPress={handleGoogleSignup}
+        >
           <Image source={require("../../assets/images/google.png")} />
-          <Text className="text-center text-[#3e3e3ee9]">Login with Google</Text>
+          <TranslatedText 
+            text="Login with Google" 
+            className="text-center text-[#3e3e3ee9]" 
+          />
         </TouchableOpacity>
-        <Text style={styles.loginText} onPress={() => router.replace("/(auth)/login")}>
-          Already have an account? <Text className="text-[#5C1A54]">Login</Text>
-        </Text>
+        
+        <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
+          <TranslatedText 
+            text="Already have an account? Login" 
+            style={styles.loginText} 
+          />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

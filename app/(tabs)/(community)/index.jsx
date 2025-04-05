@@ -1,10 +1,11 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, ScrollView, Modal } from "react-native";
+import { Image, StyleSheet, TouchableOpacity, View, ActivityIndicator, ScrollView, Modal } from "react-native";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import { Calendar } from 'react-native-calendars';
 import { getCurrentUser, getUserPlanner } from "../../../utils/appwrite";
+import TranslatedText from "../../../components/TranslatedText";
 
 const Community = () => {
   const [loading, setLoading] = useState(true);
@@ -107,9 +108,10 @@ const Community = () => {
             source={require("../../../assets/images/planner.png")} 
             style={{width:"90%", height:"72%", resizeMode:"contain"}} 
           />
-          <Text style={{textAlign:"center", paddingHorizontal:24}}>
-            Generate a personalized study planner tailored to your schedule and goals, keeping you organized and focused.
-          </Text>
+          <TranslatedText 
+            text="Generate a personalized study planner tailored to your schedule and goals, keeping you organized and focused."
+            style={{textAlign:"center", paddingHorizontal:24}}
+          />
           <TouchableOpacity 
             style={{
               backgroundColor:"#A0456E",
@@ -122,7 +124,7 @@ const Community = () => {
             }}
             onPress={() => router.push("/planner")}
           >
-            <Text style={{color:"white"}}>Generate Planner</Text>
+            <TranslatedText text="Generate Planner" style={{color:"white"}} />
             <AntDesign name="arrowright" size={22} height={18} color={"white"}/>
           </TouchableOpacity>
         </View>
@@ -154,9 +156,10 @@ const Community = () => {
         />
         
         <View className="mt-4">
-          <Text className="text-lg font-bold mb-2 text-[#A0456E]">
-            Schedule for {new Date(selectedDate).toDateString()}
-          </Text>
+          <TranslatedText 
+            text={`Schedule for ${new Date(selectedDate).toDateString()}`} 
+            className="text-lg font-bold mb-2 text-[#A0456E]"
+          />
           
           {tasksForSelectedDate && tasksForSelectedDate.length > 0 ? (
             tasksForSelectedDate.map((task, index) => (
@@ -174,35 +177,57 @@ const Community = () => {
                 })}
               >
                 <View className="flex-row justify-between">
-                  <Text className="font-bold text-[#A0456E]">{task.subject}</Text>
+                  <TranslatedText text={task.subject} className="font-bold text-[#A0456E]" />
                   <View className={`px-2 py-1 rounded-full ${
                     task.priority === 'High' ? 'bg-red-100' : 
                     task.priority === 'Medium' ? 'bg-yellow-100' : 'bg-green-100'
                   }`}>
-                    <Text className={`text-xs ${
+                    <TranslatedText className={`text-xs ${
                       task.priority === 'High' ? 'text-red-600' : 
                       task.priority === 'Medium' ? 'text-yellow-600' : 'text-green-600'
-                    }`}>
-                      {task.priority}
-                    </Text>
+                    }`} text={task.priority} />
                   </View>
                 </View>
-                <Text className="text-gray-600 mt-1">{task.time_slot}</Text>
-                <Text className="text-gray-500 mt-1">{task.topic}</Text>
+                <TranslatedText text={task.time_slot} className="text-gray-600 mt-1" />
+                <TranslatedText text={task.topic} className="text-gray-500 mt-1" />
                 <View className="mt-2 pt-2 border-t border-gray-100">
-                  <Text className="text-xs italic text-gray-400">{task.feedback_quotes}</Text>
+                  <TranslatedText text={task.feedback_quotes} className="text-xs italic text-gray-400" />
                 </View>
               </TouchableOpacity>
             ))
           ) : (
             <View className="bg-white p-4 rounded-lg mb-2 shadow-sm">
-              <Text className="text-center text-gray-500">No tasks scheduled for this day</Text>
+              <TranslatedText text="No tasks scheduled for this day" className="text-center text-gray-500" />
             </View>
           )}
         </View>
       </ScrollView>
     );
   };
+
+  const menuOptions = [
+    {
+      title: "Create New Planner",
+      icon: "add-circle-outline",
+      action: handleCreateNewPlanner
+    },
+    {
+      title: "View Analytics",
+      icon: "bar-chart",
+      action: () => {
+        // Analytics action
+        setShowDropdown(false);
+      }
+    },
+    {
+      title: "Settings",
+      icon: "settings",
+      action: () => {
+        // Settings action
+        setShowDropdown(false);
+      }
+    }
+  ];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFE7EF" }}>
@@ -243,15 +268,13 @@ const Community = () => {
               onPress={handleCreateNewPlanner}
             >
               <MaterialIcons name="add" size={20} color="#A0456E" />
-              <Text className="ml-2 text-[#A0456E]">Create New Planner</Text>
+              <TranslatedText text="Create New Planner" className="ml-2 text-[#A0456E]" />
             </TouchableOpacity>
             
             <View className="border-t border-gray-200 my-1" />
             
             <View className="py-2 px-3">
-              <Text className="text-xs text-gray-500">
-                {plannerCount}/2 planners created
-              </Text>
+              <TranslatedText text={`${plannerCount}/2 planners created`} className="text-xs text-gray-500" />
             </View>
           </View>
         )}

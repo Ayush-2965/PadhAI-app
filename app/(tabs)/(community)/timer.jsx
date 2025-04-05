@@ -6,6 +6,9 @@ import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { getCurrentUser } from '../../../utils/appwrite';
 import { saveStudySession } from '../../../utils/appwrite';
 import * as Haptics from 'expo-haptics';
+import TranslatedText from '../../../components/TranslatedText';
+import { translateText } from '../../../utils/i18n';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const formatTime = (seconds) => {
   const hours = Math.floor(seconds / 3600);
@@ -18,6 +21,7 @@ const formatTime = (seconds) => {
 const Timer = () => {
   const params = useLocalSearchParams();
   const { subject, topic, timeSlot, taskId } = params;
+  const { language } = useLanguage();
   
   // Parse time slot (format: "10:00 - 11:00")
   const [startTime, endTime] = timeSlot.split(' - ');
@@ -90,15 +94,20 @@ const Timer = () => {
     }
   };
   
-  const handleReset = () => {
+  const handleReset = async () => {
     if (isActive) {
+      const title = await translateText("Reset Timer", language);
+      const message = await translateText("Are you sure you want to reset the timer? Your progress will be lost.", language);
+      const cancelText = await translateText("Cancel", language);
+      const resetText = await translateText("Reset", language);
+      
       Alert.alert(
-        "Reset Timer",
-        "Are you sure you want to reset the timer? Your progress will be lost.",
+        title,
+        message,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: cancelText, style: "cancel" },
           { 
-            text: "Reset", 
+            text: resetText, 
             style: "destructive",
             onPress: () => {
               clearInterval(intervalRef.current);
@@ -121,7 +130,9 @@ const Timer = () => {
       
       const user = await getCurrentUser();
       if (!user) {
-        Alert.alert("Error", "You must be logged in to save your study session.");
+        const errorTitle = await translateText("Error", language);
+        const errorMsg = await translateText("You must be logged in to save your study session.", language);
+        Alert.alert(errorTitle, errorMsg);
         return;
       }
       
@@ -140,28 +151,40 @@ const Timer = () => {
       };
       
       await saveStudySession(sessionData);
+      
+      const successTitle = await translateText("Session Completed!", language);
+      const successMsg = await translateText("Your study session has been saved. Great job!", language);
+      const okText = await translateText("OK", language);
+      
       Alert.alert(
-        "Session Completed!",
-        "Your study session has been saved. Great job!",
-        [{ text: "OK", onPress: () => router.back() }]
+        successTitle,
+        successMsg,
+        [{ text: okText, onPress: () => router.back() }]
       );
     } catch (error) {
       console.error("Error saving study session:", error);
-      Alert.alert("Error", "Failed to save your study session. Please try again.");
+      const errorTitle = await translateText("Error", language);
+      const errorMsg = await translateText("Failed to save your study session. Please try again.", language);
+      Alert.alert(errorTitle, errorMsg);
     } finally {
       setIsSaving(false);
     }
   };
   
-  const handleSubmitEarly = () => {
+  const handleSubmitEarly = async () => {
     if (isActive) {
+      const title = await translateText("Complete Task Early", language);
+      const message = await translateText("Are you sure you want to mark this task as completed?", language);
+      const cancelText = await translateText("Cancel", language);
+      const completeText = await translateText("Complete", language);
+      
       Alert.alert(
-        "Complete Task Early",
-        "Are you sure you want to mark this task as completed?",
+        title,
+        message,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: cancelText, style: "cancel" },
           { 
-            text: "Complete", 
+            text: completeText, 
             onPress: () => {
               clearInterval(intervalRef.current);
               handleComplete();
@@ -170,19 +193,26 @@ const Timer = () => {
         ]
       );
     } else {
-      Alert.alert("Start Timer", "Please start the timer before completing the task.");
+      const title = await translateText("Start Timer", language);
+      const message = await translateText("Please start the timer before completing the task.", language);
+      Alert.alert(title, message);
     }
   };
   
-  const handleExit = () => {
+  const handleExit = async () => {
     if (isActive && !isPaused && timeLeft > 0) {
+      const title = await translateText("Exit Timer", language);
+      const message = await translateText("Your timer is still running. Are you sure you want to exit?", language);
+      const cancelText = await translateText("Cancel", language);
+      const exitText = await translateText("Exit", language);
+      
       Alert.alert(
-        "Exit Timer",
-        "Your timer is still running. Are you sure you want to exit?",
+        title,
+        message,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: cancelText, style: "cancel" },
           { 
-            text: "Exit", 
+            text: exitText, 
             style: "destructive",
             onPress: () => router.back()
           }
@@ -199,14 +229,14 @@ const Timer = () => {
         <TouchableOpacity onPress={handleExit}>
           <AntDesign name="arrowleft" size={24} color="#A0456E" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Study Timer</Text>
+        <TranslatedText text="Study Timer" style={styles.headerTitle} />
         <View style={{ width: 24 }} />
       </View>
       
       <View style={styles.infoCard}>
-        <Text style={styles.subject}>{subject}</Text>
-        <Text style={styles.topic}>{topic}</Text>
-        <Text style={styles.timeSlot}>{timeSlot}</Text>
+        <TranslatedText text={subject} style={styles.subject} />
+        <TranslatedText text={topic} style={styles.topic} />
+        <TranslatedText text={timeSlot} style={styles.timeSlot} />
       </View>
       
       <View style={styles.timerContainer}>
@@ -221,7 +251,7 @@ const Timer = () => {
               }
             ]} 
           />
-          <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+          <TranslatedText text={formatTime(timeLeft)} style={styles.timerText} />
         </View>
       </View>
       
@@ -232,7 +262,7 @@ const Timer = () => {
           disabled={!isActive || isSaving}
         >
           <MaterialIcons name="refresh" size={24} color="white" />
-          <Text style={styles.buttonText}>Reset</Text>
+          <TranslatedText text="Reset" style={styles.buttonText} />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -252,9 +282,10 @@ const Timer = () => {
                 size={24} 
                 color="white" 
               />
-              <Text style={styles.buttonText}>
-                {isPaused ? "Resume" : isActive ? "Pause" : "Start"}
-              </Text>
+              <TranslatedText 
+                text={isPaused ? "Resume" : isActive ? "Pause" : "Start"}
+                style={styles.buttonText}
+              />
             </>
           )}
         </TouchableOpacity>
@@ -268,19 +299,19 @@ const Timer = () => {
           disabled={isSaving}
         >
           <MaterialIcons name="check-circle" size={24} color="white" />
-          <Text style={styles.buttonText}>Complete Task</Text>
+          <TranslatedText text="Complete Task" style={styles.buttonText} />
         </TouchableOpacity>
       )}
       
       {isActive && (
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Elapsed</Text>
-            <Text style={styles.statValue}>{formatTime(totalDuration - timeLeft)}</Text>
+            <TranslatedText text="Elapsed" style={styles.statLabel} />
+            <TranslatedText text={formatTime(totalDuration - timeLeft)} style={styles.statValue} />
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Pauses</Text>
-            <Text style={styles.statValue}>{pauseCount}</Text>
+            <TranslatedText text="Pauses" style={styles.statLabel} />
+            <TranslatedText text={pauseCount.toString()} style={styles.statValue} />
           </View>
         </View>
       )}

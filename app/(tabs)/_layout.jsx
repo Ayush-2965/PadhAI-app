@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
-import { Entypo, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Entypo, Ionicons, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { View, TouchableOpacity } from "react-native";
+import TranslatedText from "../../components/TranslatedText";
 
 export default function Layout() {
   return (
@@ -16,10 +17,48 @@ export default function Layout() {
           paddingBottom: 5,
         },
         tabBarBackground: () => <View style={{ backgroundColor: "#F1BED1", flex: 1 }} />,
+        tabBarLabel: ({ focused, color, children }) => {
+          // Get the title based on the route name
+          let title = '';
+          switch (route.name) {
+            case 'index':
+              title = 'Home';
+              break;
+            case 'videos':
+              title = 'Videos';
+              break;
+            case 'reels':
+              title = 'Reels';
+              break;
+            case 'createVideo':
+              title = 'Create';
+              break;
+            case '(community)':
+              title = 'Community';
+              break;
+            case 'profile':
+              title = 'Profile';
+              break;
+            default:
+              title = children;
+          }
+          
+          return focused ? (
+            <TranslatedText 
+              text={title} 
+              style={{ 
+                fontSize: 10,
+                color: focused ? "#C46287" : "#AA7589",
+                marginTop: -5
+              }} 
+            />
+          ) : null; // Only show labels when tab is focused
+        }
       })}
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="videos" options={{ title: "Reels" }} />
+      <Tabs.Screen name="videos" options={{ title: "Videos" }} />
+      <Tabs.Screen name="reels" options={{ title: "Reels" }} />
       <Tabs.Screen name="createVideo" options={{ title: "Create" }} />
       <Tabs.Screen name="(community)" options={{ title: "Community" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
@@ -42,6 +81,7 @@ function CustomTabButton({ route, accessibilityState, onPress }) {
       borderColor: "white",
     }, 
     videos: { iconSize: isFocused ? 28 : 24, iconColor: isFocused ? "#C46287" : "#AA7589" },
+    reels: { iconSize: isFocused ? 28 : 24, iconColor: isFocused ? "#C46287" : "#AA7589" },
     profile: { iconSize: isFocused ? 28 : 24, iconColor: isFocused ? "#C46287" : "#AA7589" },
   };
 
@@ -54,6 +94,8 @@ function CustomTabButton({ route, accessibilityState, onPress }) {
         return <Entypo name="home" size={iconSize} color={iconColor} />;
       case "videos":
         return <Entypo name="folder-video" size={iconSize} color={iconColor} />;
+      case "reels":
+        return <FontAwesome5 name="film" size={iconSize} color={iconColor} />;
       case "profile":
         return <Ionicons name="person" size={iconSize} color={iconColor} />;
       case "createVideo":
