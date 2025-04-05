@@ -21,7 +21,7 @@ const Community = () => {
         if (user) {
           const planner = await getUserPlanner(user.$id);
           if (planner) {
-            console.log("Planner data:", planner.plannerData);
+            // console.log("Planner data:", planner.plannerData);
             const data = JSON.parse(planner.plannerData);
             setPlannerData(data);
             
@@ -46,7 +46,7 @@ const Community = () => {
                 };
               });
             } else {
-              console.log("Planner data doesn't have the expected structure:", data);
+              // console.log("Planner data doesn't have the expected structure:", data);
             }
             
             setMarkedDates(marks);
@@ -207,11 +207,8 @@ const Community = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFE7EF" }}>
       <View style={{ flex: 1 }}>
-        <View className="h-10 w-full flex-row justify-between items-center" style={{ padding: 8, marginVertical: 8}}>
-          <Image
-            source={require("../../../assets/images/menu.png")}
-            style={{ width: 32, height: 32, resizeMode: "contain" }}
-          />
+        <View className="h-10 w-full px-4 flex-row justify-end items-center" style={{ padding: 8, marginVertical: 8}}>
+       
           <TouchableOpacity onPress={() => setShowDropdown(!showDropdown)}>
             <Image
               source={require("../../../assets/images/filter.png")}

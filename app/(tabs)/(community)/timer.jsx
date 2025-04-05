@@ -125,14 +125,18 @@ const Timer = () => {
         return;
       }
       
+      // Calculate study time in minutes (to stay within Appwrite's 1-1000 range)
+      const studyTimeMinutes = Math.min(Math.max(Math.round((totalDuration - timeLeft) / 60), 1), 1000);
+      const durationMinutes = Math.min(Math.max(Math.round(totalDuration / 60), 1), 1000);
+      
       const sessionData = {
         userId: user.$id,
         subject,
         topic,
         taskId,
         timeSlot,
-        duration: totalDuration,
-        studyTime: totalDuration - timeLeft,
+        duration: durationMinutes, // Duration in minutes (1-1000 range)
+        studyTime: studyTimeMinutes, // Study time in minutes (1-1000 range)
         pauseCount,
         completed: timeLeft === 0,
         startTime: sessionStartTime ? sessionStartTime.toISOString() : new Date().toISOString(),
@@ -227,36 +231,39 @@ const Timer = () => {
       
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
-          style={[styles.button, styles.resetButton]} 
+          style={[
+            styles.button, 
+            !isActive ? styles.startButton : 
+            isPaused ? styles.resumeButton : styles.pauseButton
+          ]}
+          onPress={handleStart}
+          disabled={isSaving}
+        >
+          {!isActive ? (
+            <>
+              <MaterialIcons name="play-arrow" size={24} color="white" />
+              <Text style={styles.buttonText}>Start</Text>
+            </>
+          ) : isPaused ? (
+            <>
+              <MaterialIcons name="play-arrow" size={24} color="white" />
+              <Text style={styles.buttonText}>Resume</Text>
+            </>
+          ) : (
+            <>
+              <MaterialIcons name="pause" size={24} color="white" />
+              <Text style={styles.buttonText}>Pause</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.button, styles.resetButton]}
           onPress={handleReset}
           disabled={!isActive || isSaving}
         >
           <MaterialIcons name="refresh" size={24} color="white" />
           <Text style={styles.buttonText}>Reset</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[
-            styles.button, 
-            isPaused ? styles.resumeButton : isActive ? styles.pauseButton : styles.startButton
-          ]} 
-          onPress={handleStart}
-          disabled={timeLeft === 0 || isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <MaterialIcons 
-                name={isPaused ? "play-arrow" : isActive ? "pause" : "play-arrow"} 
-                size={24} 
-                color="white" 
-              />
-              <Text style={styles.buttonText}>
-                {isPaused ? "Resume" : isActive ? "Pause" : "Start"}
-              </Text>
-            </>
-          )}
         </TouchableOpacity>
       </View>
       
@@ -281,6 +288,29 @@ const Timer = () => {
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Pauses</Text>
             <Text style={styles.statValue}>{pauseCount}</Text>
+          </View>
+        </View>
+      )}
+      
+      {isSaving && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            padding: 20,
+            borderRadius: 10,
+            alignItems: 'center',
+          }}>
+            <ActivityIndicator size="large" color="#A0456E" />
+            <Text style={{ marginTop: 10, color: '#A0456E' }}>Saving your progress...</Text>
           </View>
         </View>
       )}
